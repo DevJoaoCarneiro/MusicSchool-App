@@ -39,6 +39,51 @@ public class UserServiceTest
         Assert.Equal("Success", result.Status);
         Assert.Equal(request.Name, result.Data?.Name);
         Assert.Equal(request.Email, result.Data?.Email);
+        Assert.Equal(request.Role, result.Data?.Role);
+    }
+
+    [Fact]
+    public async Task Should_Return_Conflict_When_Email_Already_Exists()
+    {
+        //Arrange
+        var request = new UserRequestDTO
+        {
+            Name = "Joao Victor",
+            Email = "joao@gmail.com",
+            Password = "joao123@#$"
+        };
+
+        _userRepository.ExistsByEmailAsync(request.Email).Returns(true);
+
+        //Act
+        var result = await _service.CreateUser(request);
+
+        //Assert
+        Assert.Equal("Email is already in use", result.Message);
+        Assert.Equal("conflict", result.Status);
+        Assert.Null(result.Data);
+        await _userRepository.DidNotReceive().AddAsync(Arg.Any<Domain.Entities.User>());
+    }
+
+    [Fact]
+    public async Task Should_Return_Invalid_Argument_When_Role_Is_Invalid()
+    {
+        //Arrange
+        var request = new UserRequestDTO
+        {
+            Name = "Joao Victor",
+            Email = "joao@gmail.com",
+            Password = "joao123@#$",
+            Role = "SuperAdmin"
+        };
+
+        //Act
+        var result = await _service.CreateUser(request);
+
+        //Assert
+        Assert.Equal("invalid_argument", result.Status);
+        Assert.Null(result.Data);
+        await _userRepository.DidNotReceive().AddAsync(Arg.Any<Domain.Entities.User>());
     }
 
     [Fact]

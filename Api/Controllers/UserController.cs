@@ -32,6 +32,7 @@ namespace Api.Controllers
                 {
                     "invalid_argument" => BadRequest(result),
                     "not_found" => NotFound(result),
+                    "conflict" => Conflict(result),
                     "error" => StatusCode(StatusCodes.Status500InternalServerError, result),
                     _ => Ok(result)
                 };

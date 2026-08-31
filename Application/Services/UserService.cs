@@ -31,13 +31,47 @@ namespace Application.Services
                     };
                 }
 
+                if (string.IsNullOrWhiteSpace(userRequestDTO.Name) ||
+                    string.IsNullOrWhiteSpace(userRequestDTO.Email) ||
+                    string.IsNullOrWhiteSpace(userRequestDTO.Password))
+                {
+                    return new UserResponseDTO
+                    {
+                        Message = "Name, email and password are required",
+                        Status = "invalid_argument",
+                        Data = null
+                    };
+                }
+
+                if (!Enum.TryParse<UserRole>(userRequestDTO.Role, ignoreCase: true, out var role) ||
+                    !Enum.IsDefined(role))
+                {
+                    return new UserResponseDTO
+                    {
+                        Message = $"Invalid role. Allowed values: {string.Join(", ", Enum.GetNames<UserRole>())}",
+                        Status = "invalid_argument",
+                        Data = null
+                    };
+                }
+
+                if (await _userRepository.ExistsByEmailAsync(userRequestDTO.Email))
+                {
+                    return new UserResponseDTO
+                    {
+                        Message = "Email is already in use",
+                        Status = "conflict",
+                        Data = null
+                    };
+                }
+
                 string passwordHash = _securityService.HashPassword(userRequestDTO.Password);
 
                 var newUser = new User
                 (
                     userRequestDTO.Name,
                     userRequestDTO.Email,
-                    passwordHash
+                    passwordHash,
+                    role
                 );
 
                 await _userRepository.AddAsync(newUser);
@@ -49,7 +83,8 @@ namespace Application.Services
                     Data = new UserData
                     {
                         Name = newUser.Name,
-                        Email = newUser.Email
+                        Email = newUser.Email,
+                        Role = newUser.Role.ToString()
                     }
                 };
             }

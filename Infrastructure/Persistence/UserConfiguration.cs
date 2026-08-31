@@ -23,8 +23,16 @@ namespace Infrastructure.Persistence
                 .IsRequired()
                 .HasMaxLength(100);
 
+            builder.HasIndex(c => c.Email)
+                .IsUnique();
+
             builder.Property(c => c.PasswordHash)
                 .IsRequired();
+
+            builder.Property(c => c.Role)
+                .IsRequired()
+                .HasConversion<string>()
+                .HasMaxLength(20);
         }
     }
 }
