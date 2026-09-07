@@ -26,6 +26,13 @@ namespace Infrastructure.Services
                 throw new InvalidOperationException("JWT secret key is not configured.");
             }
 
+            var jwtIssuer = _configuration["Jwt:Issuer"];
+
+            if (string.IsNullOrWhiteSpace(jwtIssuer))
+            {
+                throw new InvalidOperationException("JWT issuer is not configured.");
+            }
+
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(secretKey)
             );
@@ -45,6 +52,7 @@ namespace Infrastructure.Services
             var expiration = DateTime.UtcNow.AddHours(1);
 
             var token = new JwtSecurityToken(
+                issuer: jwtIssuer,
                 claims: claims,
                 expires: expiration,
                 signingCredentials: credentials

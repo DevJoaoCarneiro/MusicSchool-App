@@ -9,13 +9,16 @@ namespace Application.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly ISecurityService _securityService;
+        private readonly ITokenService _tokenService;
 
         public AuthServices(
             IUserRepository userRepository,
-            ISecurityService securityService)
+            ISecurityService securityService,
+            ITokenService tokenService)
         {
             _userRepository = userRepository;
             _securityService = securityService;
+            _tokenService = tokenService;
         }
 
         public async Task<AuthResponseDTO> LoginAsync(AuthRequestDTO request)
@@ -42,14 +45,52 @@ namespace Application.Services
                         Data = null
                     };
                 }
+
+                var user = await _userRepository.GetByEmailAsync(request.Email);
+
+                if (user == null)
+                {
+                    return new AuthResponseDTO
+                    {
+                        Message = "Invalid credentials",
+                        Status = "Unauthorized",
+                        Data = null
+                    };
+                }
+
+                var passwordIsValid = _securityService.VerifyPassword(request.Password, user.PasswordHash);
+
+                if (!passwordIsValid)
+                {
+                    return new AuthResponseDTO
+                    {
+                        Message = "Invalid credentials",
+                        Status = "Unauthorized",
+                        Data = null
+                    };
+                }
+
+                var token = _tokenService.GenerateToken(user);
+
                 return new AuthResponseDTO
                 {
-                    Message = "Login implementation pending",
-                    Status = "error",
-                    Data = null
+                    Message = "Login successful",
+                    Status = "Success",
+                    Data = new AuthData
+                    {
+                        Token = token,
+                        ExpiresIn = 3600,
+                        User = new AuthUserData
+                        {
+                            Id = user.Id,
+                            Name = user.Name,
+                            Email = user.Email,
+                            Role = user.Role.ToString()
+                        }
+                    }
                 };
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 return new AuthResponseDTO
                 {

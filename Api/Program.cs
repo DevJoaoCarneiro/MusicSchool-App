@@ -30,6 +30,7 @@ builder.Services.AddScoped<IUserServices, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISecurityService, BCryptoSecurityService>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
+builder.Services.AddScoped<IAuthServices, AuthServices>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(
