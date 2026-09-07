@@ -25,6 +25,9 @@ builder.Services.AddScoped<IUserServices, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ISecurityService, BCryptoSecurityService>();
 
+builder.Services.AddScoped<IStudentServices, StudentService>();
+builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")

@@ -12,6 +12,8 @@ namespace Infrastructure.Context
 
         public DbSet<User> Users => Set<User>();
 
+        public DbSet<Student> Students => Set<Student>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

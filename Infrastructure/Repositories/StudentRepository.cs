@@ -1,0 +1,38 @@
+﻿using Domain.Entities;
+using Domain.Interfaces;
+using Infrastructure.Context;
+using Microsoft.EntityFrameworkCore;
+
+namespace Infrastructure.Repositories
+{
+    public class StudentRepository : IStudentRepository
+    {
+        private readonly AppDbContext _context;
+
+        public StudentRepository(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<Student> AddAsync(Student student)
+        {
+            _context.Students.Add(student);
+
+            await _context.SaveChangesAsync();
+
+            return student;
+        }
+
+        public async Task<bool> ExistsByEmailAsync(string email)
+        {
+            return await _context.Students
+                .AnyAsync(s => s.Email == email);
+        }
+
+        public async Task<bool> ExistsByCpfAsync(string cpf)
+        {
+            return await _context.Students
+                .AnyAsync(s => s.Cpf == cpf);
+        }
+    }
+}
