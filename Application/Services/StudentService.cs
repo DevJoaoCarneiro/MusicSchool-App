@@ -20,7 +20,7 @@ namespace Application.Services
         {
             try
             {
-                
+
                 if (studentRequestDTO == null)
                 {
                     return new StudentResponseDTO
@@ -31,7 +31,7 @@ namespace Application.Services
                     };
                 }
 
-               
+
                 if (string.IsNullOrWhiteSpace(studentRequestDTO.Name) ||
                     string.IsNullOrWhiteSpace(studentRequestDTO.Email) ||
                     string.IsNullOrWhiteSpace(studentRequestDTO.Phone) ||
@@ -46,7 +46,7 @@ namespace Application.Services
                     };
                 }
 
-               
+
                 if (studentRequestDTO.Address == null)
                 {
                     return new StudentResponseDTO
@@ -71,7 +71,7 @@ namespace Application.Services
                     };
                 }
 
-               
+
                 if (await _studentRepository.ExistsByEmailAsync(studentRequestDTO.Email))
                 {
                     return new StudentResponseDTO
@@ -82,7 +82,7 @@ namespace Application.Services
                     };
                 }
 
-               
+
                 if (await _studentRepository.ExistsByCpfAsync(studentRequestDTO.Cpf))
                 {
                     return new StudentResponseDTO
@@ -102,7 +102,7 @@ namespace Application.Services
                     age--;
                 }
 
-               
+
                 if (age < 18 && studentRequestDTO.Guardian == null)
                 {
                     return new StudentResponseDTO
@@ -113,7 +113,7 @@ namespace Application.Services
                     };
                 }
 
-               
+
                 var address = new Address(
                     studentRequestDTO.Address.Street,
                     studentRequestDTO.Address.Number,
@@ -122,7 +122,7 @@ namespace Application.Services
                     studentRequestDTO.Address.ZipCode
                 );
 
-                
+
                 Guardian? guardian = null;
 
                 if (studentRequestDTO.Guardian != null)
@@ -148,7 +148,7 @@ namespace Application.Services
                     );
                 }
 
-               
+
                 var student = new Student(
                     studentRequestDTO.Name,
                     studentRequestDTO.Email,
@@ -159,10 +159,10 @@ namespace Application.Services
                     guardian
                 );
 
-              
+
                 await _studentRepository.AddAsync(student);
 
-               
+
                 return new StudentResponseDTO
                 {
                     Message = "Student created successfully",
@@ -276,7 +276,7 @@ namespace Application.Services
         {
             try
             {
-               
+
                 if (page <= 0 || pageSize <= 0)
                 {
                     return new StudentListResponseDTO
@@ -335,7 +335,7 @@ namespace Application.Services
         {
             try
             {
-          
+
                 if (studentRequestDTO == null)
                 {
                     return new StudentResponseDTO
@@ -346,7 +346,7 @@ namespace Application.Services
                     };
                 }
 
-              
+
                 var student = await _studentRepository.GetByIdAsync(id);
 
                 if (student == null)
@@ -359,7 +359,7 @@ namespace Application.Services
                     };
                 }
 
-                
+
                 if (string.IsNullOrWhiteSpace(studentRequestDTO.Name) ||
                     string.IsNullOrWhiteSpace(studentRequestDTO.Email) ||
                     string.IsNullOrWhiteSpace(studentRequestDTO.Phone) ||
@@ -374,7 +374,7 @@ namespace Application.Services
                     };
                 }
 
-                
+
                 if (studentRequestDTO.Address == null)
                 {
                     return new StudentResponseDTO
@@ -399,7 +399,7 @@ namespace Application.Services
                     };
                 }
 
-               
+
                 if (await _studentRepository.ExistsByEmailExceptIdAsync(
                     studentRequestDTO.Email,
                     id))
@@ -412,7 +412,7 @@ namespace Application.Services
                     };
                 }
 
-                
+
                 if (await _studentRepository.ExistsByCpfExceptIdAsync(
                     studentRequestDTO.Cpf,
                     id))
@@ -425,7 +425,7 @@ namespace Application.Services
                     };
                 }
 
-               
+
                 var today = DateTime.Today;
 
                 int age = today.Year - studentRequestDTO.BirthDate.Value.Year;
@@ -436,7 +436,7 @@ namespace Application.Services
                     age--;
                 }
 
-               
+
                 if (age < 18 && studentRequestDTO.Guardian == null)
                 {
                     return new StudentResponseDTO
@@ -447,7 +447,7 @@ namespace Application.Services
                     };
                 }
 
-               
+
                 var address = new Address(
                     studentRequestDTO.Address.Street,
                     studentRequestDTO.Address.Number,
@@ -481,7 +481,7 @@ namespace Application.Services
                     );
                 }
 
-                
+
                 student.Update(
                     studentRequestDTO.Name,
                     studentRequestDTO.Email,
@@ -492,10 +492,10 @@ namespace Application.Services
                     guardian
                 );
 
-               
+
                 await _studentRepository.UpdateAsync(student);
 
-               
+
                 return new StudentResponseDTO
                 {
                     Message = "Student updated successfully",
@@ -541,5 +541,43 @@ namespace Application.Services
             }
         }
 
-    }
+
+
+        public async Task<StudentResponseDTO> DeleteStudentAsync(Guid id)
+        {
+            try
+            {
+                var student = await _studentRepository.GetByIdAsync(id);
+
+                if (student == null)
+                {
+                    return new StudentResponseDTO
+                    {
+                        Message = "Student not found",
+                        Status = "not_found",
+                        Data = null
+                    };
+                }
+
+                await _studentRepository.DeleteAsync(student);
+
+                return new StudentResponseDTO
+                {
+                    Message = "Student deleted successfully",
+                    Status = "Success",
+                    Data = null
+                };
+            }
+            catch (Exception ex)
+            {
+                return new StudentResponseDTO
+                {
+                    Message = $"An error occurred: {ex.Message}",
+                    Status = "error",
+                    Data = null
+                };
+            }
+        }
+     }
+
 }

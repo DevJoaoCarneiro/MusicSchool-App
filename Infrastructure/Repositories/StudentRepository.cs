@@ -91,5 +91,12 @@ namespace Infrastructure.Repositories
 
             return student;
         }
+
+        public async Task DeleteAsync(Student student)
+        {
+            _context.Students.Remove(student);
+
+            await _context.SaveChangesAsync();
+        }
     }
 }

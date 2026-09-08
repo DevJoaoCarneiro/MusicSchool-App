@@ -1,5 +1,4 @@
-﻿
-using Application.Request;
+﻿using Application.Request;
 using Application.Response;
 
 namespace Application.Interfaces
@@ -11,14 +10,16 @@ namespace Application.Interfaces
         Task<StudentResponseDTO> GetByIdAsync(Guid id);
 
         Task<StudentListResponseDTO> GetAllAsync(
-             string? name,
-             int page,
-             int pageSize
-         );
+            string? name,
+            int page,
+            int pageSize
+        );
 
         Task<StudentResponseDTO> UpdateStudentAsync(
-             Guid id,
-             StudentRequestDTO studentRequestDTO
-         );
+            Guid id,
+            StudentRequestDTO studentRequestDTO
+        );
+
+        Task<StudentResponseDTO> DeleteStudentAsync(Guid id);
     }
 }

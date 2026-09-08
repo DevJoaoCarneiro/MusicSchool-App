@@ -184,5 +184,55 @@ namespace Api.Controllers
                 );
             }
         }
+    
+
+    [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(string id)
+        {
+            try
+            {
+                if (!Guid.TryParse(id, out Guid studentId))
+                {
+                    return BadRequest(new
+                    {
+                        Message = "Invalid student ID format",
+                        Status = "invalid_argument",
+                        Data = (object?)null
+                    });
+                }
+
+                var result = await _studentService.DeleteStudentAsync(studentId);
+
+                return result.Status switch
+                {
+                    "not_found" => NotFound(result),
+
+                    "conflict" => Conflict(result),
+
+                    "error" => StatusCode(
+                        StatusCodes.Status500InternalServerError,
+                        result
+                    ),
+
+                    _ => Ok(result)
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error while deleting student");
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        Message = "An unexpected error occurred",
+                        Status = "error",
+                        Data = (object?)null
+                    }
+                );
+            }
+        }
+
     }
+
 }

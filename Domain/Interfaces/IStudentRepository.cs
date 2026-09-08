@@ -33,6 +33,6 @@ namespace Domain.Interfaces
 
        
         Task<Student> UpdateAsync(Student student);
-        
+        Task DeleteAsync(Student student);
     }
 }
