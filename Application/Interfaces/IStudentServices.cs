@@ -15,5 +15,10 @@ namespace Application.Interfaces
              int page,
              int pageSize
          );
+
+        Task<StudentResponseDTO> UpdateStudentAsync(
+             Guid id,
+             StudentRequestDTO studentRequestDTO
+         );
     }
 }

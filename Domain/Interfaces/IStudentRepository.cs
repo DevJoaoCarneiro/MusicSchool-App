@@ -20,5 +20,19 @@ namespace Domain.Interfaces
             int page,
             int pageSize
         );
+
+        Task<bool> ExistsByEmailExceptIdAsync(
+            string email,
+            Guid id
+        );
+
+        Task<bool> ExistsByCpfExceptIdAsync(
+            string cpf,
+            Guid id
+        );
+
+       
+        Task<Student> UpdateAsync(Student student);
+        
     }
 }

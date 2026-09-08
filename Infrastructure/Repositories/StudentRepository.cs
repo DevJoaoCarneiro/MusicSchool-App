@@ -42,23 +42,20 @@ namespace Infrastructure.Repositories
         }
 
         public async Task<(List<Student> Students, int Total)> GetAllAsync(
-              string? name,
-              int page,
-              int pageSize)
+            string? name,
+            int page,
+            int pageSize)
         {
             var query = _context.Students.AsQueryable();
 
-           
             if (!string.IsNullOrWhiteSpace(name))
             {
                 query = query.Where(s =>
                     s.Name.ToLower().Contains(name.ToLower()));
             }
 
-            
             var total = await query.CountAsync();
 
-            
             var students = await query
                 .OrderBy(s => s.Name)
                 .Skip((page - 1) * pageSize)
@@ -66,6 +63,33 @@ namespace Infrastructure.Repositories
                 .ToListAsync();
 
             return (students, total);
+        }
+        
+        public async Task<bool> ExistsByEmailExceptIdAsync(
+            string email,
+            Guid id)
+        {
+            return await _context.Students
+                .AnyAsync(s => s.Email == email && s.Id != id);
+        }
+
+        
+        public async Task<bool> ExistsByCpfExceptIdAsync(
+            string cpf,
+            Guid id)
+        {
+            return await _context.Students
+                .AnyAsync(s => s.Cpf == cpf && s.Id != id);
+        }
+
+       
+        public async Task<Student> UpdateAsync(Student student)
+        {
+            _context.Students.Update(student);
+
+            await _context.SaveChangesAsync();
+
+            return student;
         }
     }
 }

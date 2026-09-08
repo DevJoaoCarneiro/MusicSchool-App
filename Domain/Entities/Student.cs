@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Domain.Entities
 {
@@ -19,7 +17,7 @@ namespace Domain.Entities
         public DateTime BirthDate { get; private set; }
 
         public Address Address { get; private set; } = null!;
-        
+
         public Guardian? Guardian { get; private set; }
 
         public Student()
@@ -37,6 +35,25 @@ namespace Domain.Entities
         )
         {
             Id = Guid.NewGuid();
+            Name = name;
+            Email = email;
+            Phone = phone;
+            Cpf = cpf;
+            BirthDate = birthDate;
+            Address = address;
+            Guardian = guardian;
+        }
+
+        public void Update(
+            string name,
+            string email,
+            string phone,
+            string cpf,
+            DateTime birthDate,
+            Address address,
+            Guardian? guardian
+        )
+        {
             Name = name;
             Email = email;
             Phone = phone;

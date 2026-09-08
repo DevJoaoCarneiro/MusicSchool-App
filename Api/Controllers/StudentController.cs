@@ -48,13 +48,11 @@ namespace Api.Controllers
             }
         }
 
-
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
             try
             {
-
                 if (!Guid.TryParse(id, out Guid studentId))
                 {
                     return BadRequest(new
@@ -93,16 +91,13 @@ namespace Api.Controllers
                     }
                 );
             }
-
         }
 
-    
-
-    [HttpGet]
+        [HttpGet]
         public async Task<IActionResult> GetAll(
-    [FromQuery] string? name,
-    [FromQuery] int page = 1,
-    [FromQuery] int pageSize = 20)
+            [FromQuery] string? name,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
         {
             try
             {
@@ -134,6 +129,60 @@ namespace Api.Controllers
             }
         }
 
-    }
+        // ALTERAR ALUNO
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(
+            string id,
+            [FromBody] StudentRequestDTO studentRequestDTO)
+        {
+            try
+            {
+                // Validar formato del ID
+                if (!Guid.TryParse(id, out Guid studentId))
+                {
+                    return BadRequest(new
+                    {
+                        Message = "Invalid student ID format",
+                        Status = "invalid_argument",
+                        Data = (object?)null
+                    });
+                }
 
+                var result = await _studentService.UpdateStudentAsync(
+                    studentId,
+                    studentRequestDTO
+                );
+
+                return result.Status switch
+                {
+                    "invalid_argument" => BadRequest(result),
+
+                    "not_found" => NotFound(result),
+
+                    "conflict" => Conflict(result),
+
+                    "error" => StatusCode(
+                        StatusCodes.Status500InternalServerError,
+                        result
+                    ),
+
+                    _ => Ok(result)
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error while updating student");
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        Message = "An unexpected error occurred",
+                        Status = "error",
+                        Data = (object?)null
+                    }
+                );
+            }
+        }
+    }
 }
