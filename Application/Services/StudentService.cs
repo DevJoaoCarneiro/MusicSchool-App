@@ -20,7 +20,7 @@ namespace Application.Services
         {
             try
             {
-                // 1. Validar si el request es null
+                
                 if (studentRequestDTO == null)
                 {
                     return new StudentResponseDTO
@@ -31,7 +31,7 @@ namespace Application.Services
                     };
                 }
 
-                // 2. Validar campos principales
+               
                 if (string.IsNullOrWhiteSpace(studentRequestDTO.Name) ||
                     string.IsNullOrWhiteSpace(studentRequestDTO.Email) ||
                     string.IsNullOrWhiteSpace(studentRequestDTO.Phone) ||
@@ -46,7 +46,7 @@ namespace Application.Services
                     };
                 }
 
-                // 3. Validar Address
+               
                 if (studentRequestDTO.Address == null)
                 {
                     return new StudentResponseDTO
@@ -71,7 +71,7 @@ namespace Application.Services
                     };
                 }
 
-                // 4. Verificar Email duplicado
+               
                 if (await _studentRepository.ExistsByEmailAsync(studentRequestDTO.Email))
                 {
                     return new StudentResponseDTO
@@ -82,7 +82,7 @@ namespace Application.Services
                     };
                 }
 
-                // 5. Verificar CPF duplicado
+               
                 if (await _studentRepository.ExistsByCpfAsync(studentRequestDTO.Cpf))
                 {
                     return new StudentResponseDTO
@@ -93,7 +93,6 @@ namespace Application.Services
                     };
                 }
 
-                // 6. Calcular edad
                 var today = DateTime.Today;
 
                 int age = today.Year - studentRequestDTO.BirthDate.Value.Year;
@@ -103,7 +102,7 @@ namespace Application.Services
                     age--;
                 }
 
-                // 7. Guardian obligatorio para menores de edad
+               
                 if (age < 18 && studentRequestDTO.Guardian == null)
                 {
                     return new StudentResponseDTO
@@ -114,7 +113,7 @@ namespace Application.Services
                     };
                 }
 
-                // 8. Crear Address del Domain
+               
                 var address = new Address(
                     studentRequestDTO.Address.Street,
                     studentRequestDTO.Address.Number,
@@ -149,7 +148,7 @@ namespace Application.Services
                     );
                 }
 
-                // 10. Crear Student
+               
                 var student = new Student(
                     studentRequestDTO.Name,
                     studentRequestDTO.Email,
@@ -160,13 +159,74 @@ namespace Application.Services
                     guardian
                 );
 
-                // 11. Guardar en el repositorio
+              
                 await _studentRepository.AddAsync(student);
 
-                // 12. Retornar respuesta
+               
                 return new StudentResponseDTO
                 {
                     Message = "Student created successfully",
+                    Status = "Success",
+                    Data = new StudentData
+                    {
+                        Id = student.Id,
+                        Name = student.Name,
+                        Email = student.Email,
+                        Phone = student.Phone,
+                        Cpf = student.Cpf,
+                        BirthDate = student.BirthDate,
+
+                        Address = new AddressData
+                        {
+                            Street = student.Address.Street,
+                            Number = student.Address.Number,
+                            City = student.Address.City,
+                            State = student.Address.State,
+                            ZipCode = student.Address.ZipCode
+                        },
+
+                        Guardian = student.Guardian == null
+                            ? null
+                            : new GuardianData
+                            {
+                                Name = student.Guardian.Name,
+                                Phone = student.Guardian.Phone,
+                                Email = student.Guardian.Email,
+                                Cpf = student.Guardian.Cpf
+                            }
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                return new StudentResponseDTO
+                {
+                    Message = $"An error occurred: {ex.Message}",
+                    Status = "error",
+                    Data = null
+                };
+            }
+        }
+
+        public async Task<StudentResponseDTO> GetByIdAsync(Guid id)
+        {
+            try
+            {
+                var student = await _studentRepository.GetByIdAsync(id);
+
+                if (student == null)
+                {
+                    return new StudentResponseDTO
+                    {
+                        Message = "Student not found",
+                        Status = "not_found",
+                        Data = null
+                    };
+                }
+
+                return new StudentResponseDTO
+                {
+                    Message = "Student found successfully",
                     Status = "Success",
                     Data = new StudentData
                     {

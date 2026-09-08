@@ -34,5 +34,11 @@ namespace Infrastructure.Repositories
             return await _context.Students
                 .AnyAsync(s => s.Cpf == cpf);
         }
+
+        public async Task<Student?> GetByIdAsync(Guid id)
+        {
+            return await _context.Students
+                .FirstOrDefaultAsync(s => s.Id == id);
+        }
     }
 }

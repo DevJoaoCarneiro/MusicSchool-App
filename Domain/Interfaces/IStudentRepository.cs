@@ -12,5 +12,7 @@ namespace Domain.Interfaces
         Task<bool> ExistsByEmailAsync(string email);
 
         Task<bool> ExistsByCpfAsync(string cpf);
+
+        Task<Student?> GetByIdAsync(Guid id);
     }
 }

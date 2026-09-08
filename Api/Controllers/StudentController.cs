@@ -47,5 +47,52 @@ namespace Api.Controllers
                 );
             }
         }
+
+       
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(string id)
+        {
+            try
+            {
+                
+                if (!Guid.TryParse(id, out Guid studentId))
+                {
+                    return BadRequest(new
+                    {
+                        Message = "Invalid student ID format",
+                        Status = "invalid_argument",
+                        Data = (object?)null
+                    });
+                }
+
+                var result = await _studentService.GetByIdAsync(studentId);
+
+                return result.Status switch
+                {
+                    "not_found" => NotFound(result),
+
+                    "error" => StatusCode(
+                        StatusCodes.Status500InternalServerError,
+                        result
+                    ),
+
+                    _ => Ok(result)
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error while getting student by ID");
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        Message = "An unexpected error occurred",
+                        Status = "error",
+                        Data = (object?)null
+                    }
+                );
+            }
+        }
     }
 }
