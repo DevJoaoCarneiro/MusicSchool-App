@@ -40,5 +40,32 @@ namespace Infrastructure.Repositories
             return await _context.Students
                 .FirstOrDefaultAsync(s => s.Id == id);
         }
+
+        public async Task<(List<Student> Students, int Total)> GetAllAsync(
+              string? name,
+              int page,
+              int pageSize)
+        {
+            var query = _context.Students.AsQueryable();
+
+           
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                query = query.Where(s =>
+                    s.Name.ToLower().Contains(name.ToLower()));
+            }
+
+            
+            var total = await query.CountAsync();
+
+            
+            var students = await query
+                .OrderBy(s => s.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (students, total);
+        }
     }
 }

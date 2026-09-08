@@ -48,13 +48,13 @@ namespace Api.Controllers
             }
         }
 
-       
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
             try
             {
-                
+
                 if (!Guid.TryParse(id, out Guid studentId))
                 {
                     return BadRequest(new
@@ -93,6 +93,47 @@ namespace Api.Controllers
                     }
                 );
             }
+
         }
+
+    
+
+    [HttpGet]
+        public async Task<IActionResult> GetAll(
+    [FromQuery] string? name,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 20)
+        {
+            try
+            {
+                var result = await _studentService.GetAllAsync(
+                    name,
+                    page,
+                    pageSize
+                );
+
+                return result.Status switch
+                {
+                    "invalid_argument" => BadRequest(result),
+
+                    "error" => StatusCode(
+                        StatusCodes.Status500InternalServerError,
+                        result
+                    ),
+
+                    _ => Ok(result)
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error while retrieving students");
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError
+                );
+            }
+        }
+
     }
+
 }

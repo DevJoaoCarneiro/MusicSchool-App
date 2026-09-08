@@ -122,7 +122,7 @@ namespace Application.Services
                     studentRequestDTO.Address.ZipCode
                 );
 
-                // 9. Crear Guardian si existe
+                
                 Guardian? guardian = null;
 
                 if (studentRequestDTO.Guardian != null)
@@ -268,5 +268,66 @@ namespace Application.Services
                 };
             }
         }
+
+        public async Task<StudentListResponseDTO> GetAllAsync(
+                 string? name,
+                 int page,
+                 int pageSize)
+        {
+            try
+            {
+               
+                if (page <= 0 || pageSize <= 0)
+                {
+                    return new StudentListResponseDTO
+                    {
+                        Message = "Page and pageSize must be greater than zero",
+                        Status = "invalid_argument",
+                        Data = null!
+                    };
+                }
+
+                var result = await _studentRepository.GetAllAsync(
+                    name,
+                    page,
+                    pageSize
+                );
+
+                var items = result.Students.Select(student =>
+                    new StudentListItem
+                    {
+                        Id = student.Id,
+                        Name = student.Name,
+                        Email = student.Email,
+                        Phone = student.Phone,
+                        BirthDate = student.BirthDate
+                    }
+                ).ToList();
+
+                return new StudentListResponseDTO
+                {
+                    Message = "Students retrieved successfully",
+                    Status = "Success",
+
+                    Data = new StudentListData
+                    {
+                        Items = items,
+                        Page = page,
+                        PageSize = pageSize,
+                        Total = result.Total
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                return new StudentListResponseDTO
+                {
+                    Message = $"An error occurred: {ex.Message}",
+                    Status = "error",
+                    Data = null!
+                };
+            }
+        }
+
     }
 }

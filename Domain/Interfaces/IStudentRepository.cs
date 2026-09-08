@@ -14,5 +14,11 @@ namespace Domain.Interfaces
         Task<bool> ExistsByCpfAsync(string cpf);
 
         Task<Student?> GetByIdAsync(Guid id);
+
+        Task<(List<Student> Students, int Total)> GetAllAsync(
+            string? name,
+            int page,
+            int pageSize
+        );
     }
 }
