@@ -38,6 +38,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
+
+
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 
@@ -73,6 +75,12 @@ builder.Services
     });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.Migrate();
+}
 
 if (app.Environment.IsDevelopment())
 {
