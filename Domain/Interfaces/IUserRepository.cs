@@ -7,5 +7,7 @@ namespace Domain.Interfaces
         Task<User> AddAsync(User user);
 
         Task<bool> ExistsByEmailAsync(string email);
+
+        Task<User?> GetByEmailAsync(string email);
     }
 }
