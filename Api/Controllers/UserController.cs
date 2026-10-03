@@ -1,6 +1,7 @@
 using Application.Interfaces;
 using Application.Request;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Api.Controllers
 {
@@ -21,6 +22,7 @@ namespace Api.Controllers
             _logger = logger;
         }
 
+        [AllowAnonymous]
         [HttpPost]
         public async Task<IActionResult> Register([FromBody] UserRequestDTO userRequestDTO)
         {

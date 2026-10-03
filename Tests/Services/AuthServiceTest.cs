@@ -34,8 +34,7 @@ namespace Tests.Services
 
             };
 
-            var enumUser = new UserRole();
-
+            // Arrange user entity
             var response = new User(
                 "João",
                 "joao@email.com",
@@ -54,6 +53,8 @@ namespace Tests.Services
 
             //Assert
             Assert.NotNull(result);
+            Assert.Equal("Success", result.Status);
+            // Reafirmar expectativa de Status 'Success'
             Assert.Equal("Success", result.Status);
             Assert.Equal("Login successful", result.Message);            
         }
