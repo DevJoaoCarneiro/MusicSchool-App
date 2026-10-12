@@ -11,6 +11,8 @@ namespace Infrastructure.Context
         }
 
         public DbSet<User> Users => Set<User>();
+        public DbSet<Instrument> Instruments => Set<Instrument>();
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
