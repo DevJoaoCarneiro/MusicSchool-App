@@ -17,10 +17,51 @@ namespace Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.0")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Domain.Entities.Instrument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Instruments", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("a1f5d9c2-3e4b-4b7a-8f1e-1a2b3c4d5e01"),
+                            Description = "Violão popular e clássico",
+                            Name = "Violão"
+                        },
+                        new
+                        {
+                            Id = new Guid("b2f6d9c3-3e4b-4b7a-8f1e-1a2b3c4d5e02"),
+                            Description = "Guitarra elétrica e acústica",
+                            Name = "Guitarra"
+                        },
+                        new
+                        {
+                            Id = new Guid("c3f7d9c4-3e4b-4b7a-8f1e-1a2b3c4d5e03"),
+                            Description = "Bateria acústica",
+                            Name = "Bateria"
+                        });
+                });
 
             modelBuilder.Entity("Domain.Entities.User", b =>
                 {
