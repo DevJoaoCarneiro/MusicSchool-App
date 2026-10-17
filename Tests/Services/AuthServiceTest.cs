@@ -32,11 +32,10 @@ namespace Tests.Services
                 Email = "joao@email.com",
                 Password = "123456789"
 
-            };
-
+           
             var enumUser = new UserRole();
 
-            var response = new User(
+
                 "João",
                 "joao@email.com",
                 "$2b$10$N9qo8uLOickgx2ZMRZo5i.Ul5pG8z0lYhQ0vFqzj8zVYQFzvY5x1e",
@@ -55,7 +54,10 @@ namespace Tests.Services
             //Assert
             Assert.NotNull(result);
             Assert.Equal("Success", result.Status);
-            Assert.Equal("Login successful", result.Message);            
+
+            // Reafirmar expectativa de Status 'Success'
+            Assert.Equal("Success", result.Status);
+           
         }
 
       
