@@ -1,4 +1,5 @@
-﻿using Application.Interfaces;
+
+using Application.Interfaces;
 using Application.Request;
 using Application.Response;
 using Domain.Entities;
@@ -9,10 +10,14 @@ namespace Application.Services
     public class StudentService : IStudentServices
     {
         private readonly IStudentRepository _studentRepository;
+        private readonly IEnrollmentRepository _enrollmentRepository;
 
-        public StudentService(IStudentRepository studentRepository)
+        public StudentService(
+            IStudentRepository studentRepository,
+            IEnrollmentRepository enrollmentRepository)
         {
             _studentRepository = studentRepository;
+            _enrollmentRepository = enrollmentRepository;
         }
 
         public async Task<StudentResponseDTO> CreateStudent(
@@ -20,7 +25,6 @@ namespace Application.Services
         {
             try
             {
-
                 if (studentRequestDTO == null)
                 {
                     return new StudentResponseDTO
@@ -30,7 +34,6 @@ namespace Application.Services
                         Data = null
                     };
                 }
-
 
                 if (string.IsNullOrWhiteSpace(studentRequestDTO.Name) ||
                     string.IsNullOrWhiteSpace(studentRequestDTO.Email) ||
@@ -45,7 +48,6 @@ namespace Application.Services
                         Data = null
                     };
                 }
-
 
                 if (studentRequestDTO.Address == null)
                 {
@@ -71,8 +73,8 @@ namespace Application.Services
                     };
                 }
 
-
-                if (await _studentRepository.ExistsByEmailAsync(studentRequestDTO.Email))
+                if (await _studentRepository.ExistsByEmailAsync(
+                    studentRequestDTO.Email))
                 {
                     return new StudentResponseDTO
                     {
@@ -82,8 +84,8 @@ namespace Application.Services
                     };
                 }
 
-
-                if (await _studentRepository.ExistsByCpfAsync(studentRequestDTO.Cpf))
+                if (await _studentRepository.ExistsByCpfAsync(
+                    studentRequestDTO.Cpf))
                 {
                     return new StudentResponseDTO
                     {
@@ -102,7 +104,6 @@ namespace Application.Services
                     age--;
                 }
 
-
                 if (age < 18 && studentRequestDTO.Guardian == null)
                 {
                     return new StudentResponseDTO
@@ -113,7 +114,6 @@ namespace Application.Services
                     };
                 }
 
-
                 var address = new Address(
                     studentRequestDTO.Address.Street,
                     studentRequestDTO.Address.Number,
@@ -121,7 +121,6 @@ namespace Application.Services
                     studentRequestDTO.Address.State,
                     studentRequestDTO.Address.ZipCode
                 );
-
 
                 Guardian? guardian = null;
 
@@ -148,7 +147,6 @@ namespace Application.Services
                     );
                 }
 
-
                 var student = new Student(
                     studentRequestDTO.Name,
                     studentRequestDTO.Email,
@@ -159,9 +157,7 @@ namespace Application.Services
                     guardian
                 );
 
-
                 await _studentRepository.AddAsync(student);
-
 
                 return new StudentResponseDTO
                 {
@@ -270,13 +266,12 @@ namespace Application.Services
         }
 
         public async Task<StudentListResponseDTO> GetAllAsync(
-                 string? name,
-                 int page,
-                 int pageSize)
+            string? name,
+            int page,
+            int pageSize)
         {
             try
             {
-
                 if (page <= 0 || pageSize <= 0)
                 {
                     return new StudentListResponseDTO
@@ -308,7 +303,6 @@ namespace Application.Services
                 {
                     Message = "Students retrieved successfully",
                     Status = "Success",
-
                     Data = new StudentListData
                     {
                         Items = items,
@@ -330,12 +324,11 @@ namespace Application.Services
         }
 
         public async Task<StudentResponseDTO> UpdateStudentAsync(
-    Guid id,
-    StudentRequestDTO studentRequestDTO)
+            Guid id,
+            StudentRequestDTO studentRequestDTO)
         {
             try
             {
-
                 if (studentRequestDTO == null)
                 {
                     return new StudentResponseDTO
@@ -345,7 +338,6 @@ namespace Application.Services
                         Data = null
                     };
                 }
-
 
                 var student = await _studentRepository.GetByIdAsync(id);
 
@@ -358,7 +350,6 @@ namespace Application.Services
                         Data = null
                     };
                 }
-
 
                 if (string.IsNullOrWhiteSpace(studentRequestDTO.Name) ||
                     string.IsNullOrWhiteSpace(studentRequestDTO.Email) ||
@@ -373,7 +364,6 @@ namespace Application.Services
                         Data = null
                     };
                 }
-
 
                 if (studentRequestDTO.Address == null)
                 {
@@ -399,7 +389,6 @@ namespace Application.Services
                     };
                 }
 
-
                 if (await _studentRepository.ExistsByEmailExceptIdAsync(
                     studentRequestDTO.Email,
                     id))
@@ -411,7 +400,6 @@ namespace Application.Services
                         Data = null
                     };
                 }
-
 
                 if (await _studentRepository.ExistsByCpfExceptIdAsync(
                     studentRequestDTO.Cpf,
@@ -425,7 +413,6 @@ namespace Application.Services
                     };
                 }
 
-
                 var today = DateTime.Today;
 
                 int age = today.Year - studentRequestDTO.BirthDate.Value.Year;
@@ -436,7 +423,6 @@ namespace Application.Services
                     age--;
                 }
 
-
                 if (age < 18 && studentRequestDTO.Guardian == null)
                 {
                     return new StudentResponseDTO
@@ -446,7 +432,6 @@ namespace Application.Services
                         Data = null
                     };
                 }
-
 
                 var address = new Address(
                     studentRequestDTO.Address.Street,
@@ -481,7 +466,6 @@ namespace Application.Services
                     );
                 }
 
-
                 student.Update(
                     studentRequestDTO.Name,
                     studentRequestDTO.Email,
@@ -492,9 +476,7 @@ namespace Application.Services
                     guardian
                 );
 
-
                 await _studentRepository.UpdateAsync(student);
-
 
                 return new StudentResponseDTO
                 {
@@ -541,8 +523,6 @@ namespace Application.Services
             }
         }
 
-
-
         public async Task<StudentResponseDTO> DeleteStudentAsync(Guid id)
         {
             try
@@ -555,6 +535,20 @@ namespace Application.Services
                     {
                         Message = "Student not found",
                         Status = "not_found",
+                        Data = null
+                    };
+                }
+
+                var hasActiveEnrollments =
+                    await _enrollmentRepository
+                        .HasActiveEnrollmentsByStudentAsync(id);
+
+                if (hasActiveEnrollments)
+                {
+                    return new StudentResponseDTO
+                    {
+                        Message = "Cannot delete the student because they have active enrollments",
+                        Status = "conflict",
                         Data = null
                     };
                 }
@@ -578,6 +572,5 @@ namespace Application.Services
                 };
             }
         }
-     }
-
+    }
 }

@@ -8,5 +8,9 @@
 
   "ConnectionStrings": {
     "DefaultConnection": "Host=localhost;Port=5432;Database=MusicSchoolDb;Username=postgres;Password=postgres"
+  },
+  "Jwt": {
+    "SecretKey": "123456789012345678901234567890123",
+    "Issuer": "test"
   }
 }

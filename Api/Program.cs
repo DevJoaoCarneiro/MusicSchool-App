@@ -54,8 +54,8 @@ builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthServices, AuthServices>();
 builder.Services.AddScoped<IInstrumentRepository, InstrumentRepository>();
 builder.Services.AddScoped<IInstrumentServices, InstrumentServices>();
-
-
+builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+builder.Services.AddScoped<IEnrollmentServices, EnrollmentService>();
 builder.Services.AddScoped<IStudentServices, StudentService>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 
