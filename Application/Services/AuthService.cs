@@ -30,7 +30,9 @@ namespace Application.Services
                     return new AuthResponseDTO
                     {
                         Message = "Parameters is empty or null",
+
                         Status = "InvalidArgument",
+
                         Data = null
                     };
                 }
@@ -41,7 +43,9 @@ namespace Application.Services
                     return new AuthResponseDTO
                     {
                         Message = "Email and password are required",
+
                         Status = "InvalidArgument",
+
                         Data = null
                     };
                 }
@@ -90,12 +94,14 @@ namespace Application.Services
                     }
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new AuthResponseDTO
                 {
                     Message = "An unexpected error occurred",
+
                     Status = "Error",
+
                     Data = null
                 };
             }

@@ -13,6 +13,10 @@ namespace Infrastructure.Context
         public DbSet<User> Users => Set<User>();
         public DbSet<Instrument> Instruments => Set<Instrument>();
 
+        public DbSet<Enrollment> Enrollments { get; set; } = null!;
+        public DbSet<Student> Students => Set<Student>();
+
+        public DbSet<Lesson> Lessons => Set<Lesson>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
