@@ -58,7 +58,8 @@ builder.Services.AddScoped<IInstrumentServices, InstrumentServices>();
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
 builder.Services.AddScoped<IEnrollmentServices, EnrollmentService>();
 
-
+builder.Services.AddScoped<ILessonRepository, LessonRepository>();
+builder.Services.AddScoped<ILessonServices, LessonService>();
 
 builder.Services.AddScoped<IStudentServices, StudentService>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();

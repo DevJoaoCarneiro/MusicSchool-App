@@ -31,16 +31,14 @@ namespace Tests.Services
             {
                 Email = "joao@email.com",
                 Password = "123456789"
+            };
 
-           
-            var enumUser = new UserRole();
-
-
+            var response = new User(
                 "João",
                 "joao@email.com",
                 "$2b$10$N9qo8uLOickgx2ZMRZo5i.Ul5pG8z0lYhQ0vFqzj8zVYQFzvY5x1e",
                 UserRole.Admin
-             );
+            );
 
             _userRepository.GetByEmailAsync(request.Email).Returns(response);
 
@@ -51,13 +49,9 @@ namespace Tests.Services
             // Act
             var result = await _service.LoginAsync(request);
 
-            //Assert
+            // Assert
             Assert.NotNull(result);
             Assert.Equal("Success", result.Status);
-
-            // Reafirmar expectativa de Status 'Success'
-            Assert.Equal("Success", result.Status);
-           
         }
 
       

@@ -104,6 +104,49 @@ namespace Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Domain.Entities.Lesson", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Room")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTime>("StartsAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("TeacherId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EnrollmentId");
+
+                    b.HasIndex("StartsAt");
+
+                    b.HasIndex("TeacherId");
+
+                    b.ToTable("Lessons", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Lessons_DurationMinutes", "\"DurationMinutes\" >= 30 AND \"DurationMinutes\" <= 120");
+
+                            t.HasCheckConstraint("CK_Lessons_Room", "length(trim(\"Room\")) > 0");
+                        });
+                });
+
             modelBuilder.Entity("Domain.Entities.Student", b =>
                 {
                     b.Property<Guid>("Id")
@@ -194,6 +237,17 @@ namespace Infrastructure.Migrations
                     b.Navigation("Instrument");
 
                     b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Lesson", b =>
+                {
+                    b.HasOne("Domain.Entities.Enrollment", "Enrollment")
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Enrollment");
                 });
 
             modelBuilder.Entity("Domain.Entities.Student", b =>

@@ -16,6 +16,8 @@ namespace Infrastructure.Context
         public DbSet<Enrollment> Enrollments { get; set; } = null!;
         public DbSet<Student> Students => Set<Student>();
 
+        public DbSet<Lesson> Lessons => Set<Lesson>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

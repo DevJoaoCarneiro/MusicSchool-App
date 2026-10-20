@@ -94,7 +94,7 @@ namespace Application.Services
                     }
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new AuthResponseDTO
                 {
