@@ -56,6 +56,11 @@ namespace Infrastructure.Persistence
                 .HasForeignKey(l => l.EnrollmentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasOne<Teacher>()
+                .WithMany()
+                .HasForeignKey(l => l.TeacherId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasIndex(l => l.StartsAt);
             builder.HasIndex(l => l.TeacherId);
         }
