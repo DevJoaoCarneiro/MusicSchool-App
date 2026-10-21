@@ -63,6 +63,8 @@ builder.Services.AddScoped<ILessonServices, LessonService>();
 
 builder.Services.AddScoped<IStudentServices, StudentService>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+builder.Services.AddScoped<ITeacherServices, TeacherService>();
+builder.Services.AddScoped<ITeacherRepository, TeacherRepository>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(
