@@ -8,19 +8,21 @@ namespace Application.Services
 {
     public class LessonService : ILessonServices
     {
+
         private readonly ILessonRepository _lessonRepository;
         private readonly IEnrollmentRepository _enrollmentRepository;
-        private readonly IUserRepository _userRepository;
+        private readonly ITeacherRepository _teacherRepository;
 
         public LessonService(
             ILessonRepository lessonRepository,
             IEnrollmentRepository enrollmentRepository,
-            IUserRepository userRepository)
+            ITeacherRepository teacherRepository)
         {
             _lessonRepository = lessonRepository;
             _enrollmentRepository = enrollmentRepository;
-            _userRepository = userRepository;
+            _teacherRepository = teacherRepository;
         }
+
 
         public async Task<LessonResponseDTO> CreateAsync(
             LessonRequestDTO request)
@@ -81,15 +83,31 @@ namespace Application.Services
             var endsAt = request.StartsAt.AddMinutes(
                 request.DurationMinutes);
 
-            // Verify teacher exists
-            var teacher = await _userRepository.GetByIdAsync(request.TeacherId);
+
+            var teacher = await _teacherRepository
+                .GetByIdAsync(request.TeacherId);
+
             if (teacher == null)
             {
                 return Error("Teacher not found", "NotFound");
             }
 
-            // TODO: verify that the teacher actually teaches the instrument of the enrollment.
-            // This check will be implemented by the colleague responsible for teacher domain.
+            var instrumentName = enrollment.Instrument.Name;
+
+            var teachesInstrument = teacher.Specialties.Any(s =>
+                !string.IsNullOrWhiteSpace(s) &&
+                string.Equals(
+                    s.Trim(),
+                    instrumentName.Trim(),
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (!teachesInstrument)
+            {
+                return Error(
+                    "Teacher does not teach the instrument of this enrollment",
+                    "BadRequest");
+            }
+
 
             if (await _lessonRepository.HasTeacherConflictAsync(
                     request.TeacherId, request.StartsAt, endsAt))
