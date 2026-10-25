@@ -21,5 +21,11 @@ namespace Domain.Interfaces
             string room,
             DateTime startsAt,
             DateTime endsAt);
+
+        Task<List<Lesson>> GetByDateRangeAsync(
+            DateTime from,
+            DateTime to,
+            Guid? teacherId,
+            Guid? studentId);
     }
 }
