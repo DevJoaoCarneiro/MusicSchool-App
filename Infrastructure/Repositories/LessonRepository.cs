@@ -58,5 +58,37 @@ namespace Infrastructure.Repositories
                 l.StartsAt < endsAt &&
                 l.StartsAt.AddMinutes(l.DurationMinutes) > startsAt);
         }
+
+        public async Task<List<Lesson>> GetByDateRangeAsync(
+            DateTime from,
+            DateTime to,
+            Guid? teacherId,
+            Guid? studentId)
+        {
+            var query = _context.Lessons
+                .Include(l => l.Enrollment)
+                    .ThenInclude(e => e.Student)
+                .Include(l => l.Enrollment)
+                    .ThenInclude(e => e.Instrument)
+                .Where(l =>
+                    l.StartsAt >= from &&
+                    l.StartsAt < to.Date.AddDays(1));
+
+            if (teacherId.HasValue)
+            {
+                query = query.Where(l =>
+                    l.TeacherId == teacherId.Value);
+            }
+
+            if (studentId.HasValue)
+            {
+                query = query.Where(l =>
+                    l.Enrollment.StudentId == studentId.Value);
+            }
+
+            return await query
+                .OrderBy(l => l.StartsAt)
+                .ToListAsync();
+        }
     }
 }
