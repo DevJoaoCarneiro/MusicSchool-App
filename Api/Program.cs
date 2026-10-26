@@ -58,10 +58,13 @@ builder.Services.AddScoped<IInstrumentServices, InstrumentServices>();
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
 builder.Services.AddScoped<IEnrollmentServices, EnrollmentService>();
 
-
+builder.Services.AddScoped<ILessonRepository, LessonRepository>();
+builder.Services.AddScoped<ILessonServices, LessonService>();
 
 builder.Services.AddScoped<IStudentServices, StudentService>();
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
+builder.Services.AddScoped<ITeacherServices, TeacherService>();
+builder.Services.AddScoped<ITeacherRepository, TeacherRepository>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(
@@ -105,13 +108,17 @@ builder.Services
         };
     });
 
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var dbContext = scope.ServiceProvider
+        .GetRequiredService<AppDbContext>();
+
     dbContext.Database.Migrate();
 }
+
 
 if (app.Environment.IsDevelopment())
 {

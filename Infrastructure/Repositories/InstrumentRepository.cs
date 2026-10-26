@@ -59,11 +59,14 @@ namespace Infrastructure.Repositories
             return await _context.SaveChangesAsync() > 0;
         }
 
+
         public async Task<bool> HasActiveEnrollmentsAsync(Guid instrumentId)
         {
-            // TODO: implementar quando conhecermos
-            // a entidade e as regras de matrícula do projeto.
-            throw new NotImplementedException();
+            return await _context.Enrollments
+                .AnyAsync(e =>
+                    e.InstrumentId == instrumentId &&
+                    e.Status == EnrollmentStatus.Active);
         }
+
     }
 }
