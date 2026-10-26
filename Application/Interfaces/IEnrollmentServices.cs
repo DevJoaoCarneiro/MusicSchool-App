@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿
 using Application.Request;
 using Application.Response;
 
@@ -10,5 +8,12 @@ namespace Application.Interfaces
     {
         Task<EnrollmentResponseDTO> CreateEnrollmentAsync(
             EnrollmentRequestDTO request);
+
+        Task<EnrollmentListResponseDTO> GetAllAsync(
+            Guid? studentId,
+            Guid? instrumentId,
+            string? status,
+            int page,
+            int pageSize);
     }
 }

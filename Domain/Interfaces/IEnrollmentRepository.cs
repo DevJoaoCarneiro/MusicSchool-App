@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Threading.Tasks;
 using Domain.Entities;
 
 namespace Domain.Interfaces
@@ -17,5 +17,12 @@ namespace Domain.Interfaces
 
         Task<bool> HasActiveEnrollmentsByStudentAsync(
             Guid studentId);
+
+        Task<(List<Enrollment> Items, int Total)> GetAllAsync(
+            Guid? studentId,
+            Guid? instrumentId,
+            EnrollmentStatus? status,
+            int page,
+            int pageSize);
     }
 }
