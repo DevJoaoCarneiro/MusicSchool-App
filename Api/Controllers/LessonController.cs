@@ -18,7 +18,7 @@ namespace Api.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Secretary")]
         public async Task<IActionResult> Create(
             [FromBody] LessonRequestDTO request)
         {

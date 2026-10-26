@@ -7,7 +7,7 @@ namespace Api.Controllers
 {
     [ApiController]
     [Route("api/enrollments")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Secretary")]
     public class EnrollmentController : ControllerBase
     {
         private readonly IEnrollmentServices _enrollmentServices;
