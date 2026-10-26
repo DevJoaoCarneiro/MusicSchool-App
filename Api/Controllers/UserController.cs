@@ -22,7 +22,7 @@ namespace Api.Controllers
             _logger = logger;
         }
 
-        [AllowAnonymous]
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> Register([FromBody] UserRequestDTO userRequestDTO)
         {
