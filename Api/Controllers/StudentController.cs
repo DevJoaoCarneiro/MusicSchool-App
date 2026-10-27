@@ -1,11 +1,13 @@
 ﻿using Application.Interfaces;
 using Application.Request;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class StudentController : ControllerBase
     {
         private readonly IStudentServices _studentService;
@@ -20,6 +22,7 @@ namespace Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,Secretary")]
         public async Task<IActionResult> Create(
             [FromBody] StudentRequestDTO studentRequestDTO)
         {
@@ -129,8 +132,9 @@ namespace Api.Controllers
             }
         }
 
-        // ALTERAR ALUNO
+        
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Secretary")]
         public async Task<IActionResult> Update(
             string id,
             [FromBody] StudentRequestDTO studentRequestDTO)
@@ -187,6 +191,7 @@ namespace Api.Controllers
     
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin,Secretary")]
         public async Task<IActionResult> Delete(string id)
         {
             try

@@ -1,6 +1,8 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
+using System.Threading.Tasks;
 using Domain.Entities;
 using Domain.Interfaces;
 using Infrastructure.Context;
@@ -20,7 +22,6 @@ namespace Infrastructure.Repositories
         public async Task<Enrollment> AddAsync(Enrollment enrollment)
         {
             _context.Enrollments.Add(enrollment);
-
             await _context.SaveChangesAsync();
 
             return enrollment;
@@ -50,6 +51,46 @@ namespace Infrastructure.Repositories
             return await _context.Enrollments.AnyAsync(e =>
                 e.StudentId == studentId &&
                 e.Status == EnrollmentStatus.Active);
+        }
+
+        public async Task<(List<Enrollment> Items, int Total)> GetAllAsync(
+            Guid? studentId,
+            Guid? instrumentId,
+            EnrollmentStatus? status,
+            int page,
+            int pageSize)
+        {
+            var query = _context.Enrollments
+                .AsNoTracking()
+                .Include(e => e.Student)
+                .Include(e => e.Instrument)
+                .AsQueryable();
+
+            if (studentId.HasValue)
+            {
+                query = query.Where(e => e.StudentId == studentId.Value);
+            }
+
+            if (instrumentId.HasValue)
+            {
+                query = query.Where(e => e.InstrumentId == instrumentId.Value);
+            }
+
+            if (status.HasValue)
+            {
+                query = query.Where(e => e.Status == status.Value);
+            }
+
+            var total = await query.CountAsync();
+
+            var items = await query
+                .OrderBy(e => e.StartDate)
+                .ThenBy(e => e.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, total);
         }
     }
 }

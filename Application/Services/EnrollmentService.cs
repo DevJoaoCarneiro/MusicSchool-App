@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+
 using Application.Interfaces;
 using Application.Request;
 using Application.Response;
@@ -101,24 +99,19 @@ namespace Application.Services
                 {
                     Message = "Enrollment created successfully",
                     Status = "Success",
-
-
                     Data = new EnrollmentData
                     {
                         Id = enrollment.Id,
-
                         Student = new StudentEnrollmentData
                         {
                             Id = student.Id,
                             Name = student.Name
                         },
-
                         Instrument = new InstrumentEnrollmentData
                         {
                             Id = instrument.Id,
                             Name = instrument.Name
                         },
-
                         StartDate = enrollment.StartDate,
                         MonthlyFee = enrollment.MonthlyFee,
                         DueDay = enrollment.DueDay,
@@ -134,11 +127,95 @@ namespace Application.Services
             }
         }
 
+        public async Task<EnrollmentListResponseDTO> GetAllAsync(
+            Guid? studentId,
+            Guid? instrumentId,
+            string? status,
+            int page,
+            int pageSize)
+        {
+            if (page < 1 || pageSize < 1)
+            {
+                return ListError(
+                    "Page and pageSize must be greater than zero",
+                    "invalid_argument");
+            }
+
+            EnrollmentStatus? enrollmentStatus = null;
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                if (string.Equals(status, "Active", StringComparison.OrdinalIgnoreCase))
+                {
+                    enrollmentStatus = EnrollmentStatus.Active;
+                }
+                else if (string.Equals(status, "Closed", StringComparison.OrdinalIgnoreCase))
+                {
+                    enrollmentStatus = EnrollmentStatus.Inactive;
+                }
+                else
+                {
+                    return ListError(
+                        "Status must be Active or Closed",
+                        "invalid_argument");
+                }
+            }
+
+            try
+            {
+                var result = await _enrollmentRepository.GetAllAsync(
+                    studentId,
+                    instrumentId,
+                    enrollmentStatus,
+                    page,
+                    pageSize);
+
+                return new EnrollmentListResponseDTO
+                {
+                    Message = "Enrollments retrieved successfully",
+                    Status = "Success",
+                    Data = new EnrollmentListData
+                    {
+                        Items = result.Items.Select(enrollment =>
+                            new EnrollmentListItemDTO
+                            {
+                                Id = enrollment.Id,
+                                StudentName = enrollment.Student.Name,
+                                InstrumentName = enrollment.Instrument.Name,
+                                StartDate = enrollment.StartDate,
+                                Status = enrollment.Status.ToString()
+                            }).ToList(),
+                        Page = page,
+                        PageSize = pageSize,
+                        Total = result.Total
+                    }
+                };
+            }
+            catch (Exception)
+            {
+                return ListError(
+                    "An unexpected error occurred while retrieving enrollments",
+                    "error");
+            }
+        }
+
         private static EnrollmentResponseDTO Error(
             string message,
             string status)
         {
             return new EnrollmentResponseDTO
+            {
+                Message = message,
+                Status = status,
+                Data = null
+            };
+        }
+
+        private static EnrollmentListResponseDTO ListError(
+            string message,
+            string status)
+        {
+            return new EnrollmentListResponseDTO
             {
                 Message = message,
                 Status = status,
