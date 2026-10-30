@@ -17,5 +17,9 @@ namespace Application.Interfaces
         Task<LessonResponseDTO> CancelAsync(
            Guid id,
            CancelLessonRequestDTO request);
+
+        Task<LessonResponseDTO> RescheduleAsync(
+    Guid id,
+    RescheduleLessonRequestDTO request);
     }
 }

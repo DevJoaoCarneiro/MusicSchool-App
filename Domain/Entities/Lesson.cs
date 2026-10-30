@@ -102,5 +102,36 @@ namespace Domain.Entities
             Reason = reason.Trim();
             CancelledAt = DateTime.Now;
         }
+
+
+        public void Reschedule(DateTime newStartsAt, string newRoom)
+        {
+            if (Status != LessonStatus.Scheduled)
+                throw new InvalidOperationException(
+                    "Only scheduled lessons can be rescheduled");
+
+            if (StartsAt <= DateTime.Now)
+                throw new InvalidOperationException(
+                    "A lesson that has already started cannot be rescheduled");
+
+            if (newStartsAt <= DateTime.Now)
+                throw new ArgumentException(
+                    "New lesson date must be in the future",
+                    nameof(newStartsAt));
+
+            if (string.IsNullOrWhiteSpace(newRoom))
+                throw new ArgumentException(
+                    "Room is required",
+                    nameof(newRoom));
+
+            if (newRoom.Trim().Length > 60)
+                throw new ArgumentException(
+                    "Room cannot exceed 60 characters",
+                    nameof(newRoom));
+
+            StartsAt = newStartsAt;
+            Room = newRoom.Trim();
+        }
+
     }
 }

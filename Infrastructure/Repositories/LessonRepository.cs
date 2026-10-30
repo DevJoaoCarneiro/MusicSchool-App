@@ -38,37 +38,43 @@ namespace Infrastructure.Repositories
         }
 
         public async Task<bool> HasTeacherConflictAsync(
-            Guid teacherId,
-            DateTime startsAt,
-            DateTime endsAt)
+    Guid teacherId,
+    DateTime startsAt,
+    DateTime endsAt,
+    Guid? excludeLessonId = null)
         {
             return await _context.Lessons.AnyAsync(l =>
                 l.TeacherId == teacherId &&
                 l.Status == LessonStatus.Scheduled &&
+                (!excludeLessonId.HasValue || l.Id != excludeLessonId.Value) &&
                 l.StartsAt < endsAt &&
                 l.StartsAt.AddMinutes(l.DurationMinutes) > startsAt);
         }
 
         public async Task<bool> HasStudentConflictAsync(
-            Guid studentId,
-            DateTime startsAt,
-            DateTime endsAt)
+    Guid studentId,
+    DateTime startsAt,
+    DateTime endsAt,
+    Guid? excludeLessonId = null)
         {
             return await _context.Lessons.AnyAsync(l =>
                 l.Enrollment.StudentId == studentId &&
                 l.Status == LessonStatus.Scheduled &&
+                (!excludeLessonId.HasValue || l.Id != excludeLessonId.Value) &&
                 l.StartsAt < endsAt &&
                 l.StartsAt.AddMinutes(l.DurationMinutes) > startsAt);
         }
 
         public async Task<bool> HasRoomConflictAsync(
-            string room,
-            DateTime startsAt,
-            DateTime endsAt)
+    string room,
+    DateTime startsAt,
+    DateTime endsAt,
+    Guid? excludeLessonId = null)
         {
             return await _context.Lessons.AnyAsync(l =>
                 l.Room.ToLower() == room.Trim().ToLower() &&
                 l.Status == LessonStatus.Scheduled &&
+                (!excludeLessonId.HasValue || l.Id != excludeLessonId.Value) &&
                 l.StartsAt < endsAt &&
                 l.StartsAt.AddMinutes(l.DurationMinutes) > startsAt);
         }
@@ -103,6 +109,18 @@ namespace Infrastructure.Repositories
             return await query
                 .OrderBy(l => l.StartsAt)
                 .ToListAsync();
+        }
+
+        public async Task<Lesson> UpdateWithHistoryAsync(
+    Lesson lesson,
+    LessonChange lessonChange)
+        {
+            _context.Lessons.Update(lesson);
+            _context.LessonChanges.Add(lessonChange);
+
+            await _context.SaveChangesAsync();
+
+            return lesson;
         }
     }
 }

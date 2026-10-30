@@ -95,5 +95,27 @@ namespace Api.Controllers
                     });
             }
         }
+
+
+        [HttpPatch("{id:guid}/reschedule")]
+        [Authorize(Roles = "Admin,Secretary")]
+        public async Task<IActionResult> Reschedule(
+            Guid id,
+            [FromBody] RescheduleLessonRequestDTO request)
+        {
+            var response = await _lessonServices.RescheduleAsync(id, request);
+
+            return response.Status switch
+            {
+                "Success" => Ok(response),
+                "BadRequest" => BadRequest(response),
+                "NotFound" => NotFound(response),
+                "Conflict" => Conflict(response),
+                _ => StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    response)
+            };
+        }
+
     }
 }

@@ -19,6 +19,8 @@ namespace Infrastructure.Context
 
         public DbSet<Lesson> Lessons => Set<Lesson>();
 
+        public DbSet<LessonChange> LessonChanges => Set<LessonChange>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
