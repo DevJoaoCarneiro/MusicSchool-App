@@ -29,6 +29,10 @@ namespace Domain.Entities
 
         public LessonStatus Status { get; private set; }
 
+        public string? Reason { get; private set; }
+
+        public DateTime? CancelledAt { get; private set; }
+
         // Constructor para o Entity Framework Core
         public Lesson()
         {
@@ -77,6 +81,26 @@ namespace Domain.Entities
             DurationMinutes = durationMinutes;
             Room = room.Trim();
             Status = LessonStatus.Scheduled;
+        }
+
+        public void Cancel(string reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason) || reason.Trim().Length < 5)
+                throw new ArgumentException(
+                    "Cancellation reason must have at least 5 characters",
+                    nameof(reason));
+
+            if (Status != LessonStatus.Scheduled)
+                throw new InvalidOperationException(
+                    "Only scheduled lessons can be cancelled");
+
+            if (StartsAt <= DateTime.Now)
+                throw new InvalidOperationException(
+                    "A lesson that has already started cannot be cancelled");
+
+            Status = LessonStatus.Cancelled;
+            Reason = reason.Trim();
+            CancelledAt = DateTime.Now;
         }
     }
 }

@@ -7,6 +7,10 @@ namespace Domain.Interfaces
     {
         Task<Lesson> AddAsync(Lesson lesson);
 
+        Task<Lesson?> GetByIdAsync(Guid id);
+
+        Task<Lesson> UpdateAsync(Lesson lesson);
+
         Task<bool> HasTeacherConflictAsync(
             Guid teacherId,
             DateTime startsAt,
