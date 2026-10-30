@@ -110,11 +110,18 @@ namespace Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<int>("DurationMinutes")
                         .HasColumnType("integer");
 
                     b.Property<Guid>("EnrollmentId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Room")
                         .IsRequired()

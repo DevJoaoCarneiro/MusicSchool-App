@@ -23,6 +23,20 @@ namespace Infrastructure.Repositories
             return lesson;
         }
 
+        public async Task<Lesson?> GetByIdAsync(Guid id)
+        {
+            return await _context.Lessons
+                .FirstOrDefaultAsync(l => l.Id == id);
+        }
+
+        public async Task<Lesson> UpdateAsync(Lesson lesson)
+        {
+            _context.Lessons.Update(lesson);
+            await _context.SaveChangesAsync();
+
+            return lesson;
+        }
+
         public async Task<bool> HasTeacherConflictAsync(
             Guid teacherId,
             DateTime startsAt,

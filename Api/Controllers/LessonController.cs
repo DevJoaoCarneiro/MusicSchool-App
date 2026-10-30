@@ -36,6 +36,28 @@ namespace Api.Controllers
             };
         }
 
+
+        [HttpPatch("{id:guid}/cancel")]
+        [Authorize(Roles = "Admin,Secretary")]
+        public async Task<IActionResult> Cancel(
+            Guid id,
+            [FromBody] CancelLessonRequestDTO request)
+        {
+            var response = await _lessonServices.CancelAsync(id, request);
+
+            return response.Status switch
+            {
+                "Success" => Ok(response),
+                "BadRequest" => BadRequest(response),
+                "NotFound" => NotFound(response),
+                "Conflict" => Conflict(response),
+                _ => StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    response)
+            };
+        }
+
+
         [HttpGet]
         [Authorize(Roles = "Admin,Teacher")]
         public async Task<IActionResult> GetByDateRange(

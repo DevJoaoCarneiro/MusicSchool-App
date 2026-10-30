@@ -193,6 +193,9 @@ namespace Application.Services
             if (studentId == Guid.Empty)
                 return Error("Invalid studentId", "BadRequest");
 
+
+
+
             try
             {
                 var lessons = await _lessonRepository.GetByDateRangeAsync(
@@ -227,6 +230,62 @@ namespace Application.Services
                     Status = "Success",
                     Data = results
                 };
+            }
+            catch (Exception)
+            {
+                return Error("An unexpected error occurred", "Error");
+            }
+        }
+
+
+        public async Task<LessonResponseDTO> CancelAsync(
+            Guid id,
+            CancelLessonRequestDTO request)
+        {
+            if (id == Guid.Empty)
+                return Error("Invalid lesson ID", "BadRequest");
+
+            if (request == null)
+                return Error("Request is required", "BadRequest");
+
+            if (string.IsNullOrWhiteSpace(request.Reason) ||
+                request.Reason.Trim().Length < 5)
+            {
+                return Error(
+                    "Cancellation reason must have at least 5 characters",
+                    "BadRequest");
+            }
+
+            try
+            {
+                var lesson = await _lessonRepository.GetByIdAsync(id);
+
+                if (lesson == null)
+                    return Error("Lesson not found", "NotFound");
+
+                lesson.Cancel(request.Reason);
+
+                await _lessonRepository.UpdateAsync(lesson);
+
+                return new LessonResponseDTO
+                {
+                    Message = "Lesson cancelled successfully",
+                    Status = "Success",
+                    Data = new
+                    {
+                        id = lesson.Id,
+                        status = lesson.Status.ToString(),
+                        reason = lesson.Reason
+                    }
+                };
+            }
+            catch (ArgumentException ex)
+            {
+                return Error(ex.Message, "BadRequest");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Error(ex.Message, "Conflict");
             }
             catch (Exception)
             {
