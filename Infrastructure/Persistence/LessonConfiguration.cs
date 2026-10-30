@@ -51,6 +51,14 @@ namespace Infrastructure.Persistence
                 .HasConversion<string>()
                 .HasMaxLength(20);
 
+            builder.Property(l => l.Reason)
+    .HasMaxLength(500)
+    .IsRequired(false);
+
+            builder.Property(l => l.CancelledAt)
+                .HasColumnType("timestamp without time zone")
+                .IsRequired(false);
+
             builder.HasOne(l => l.Enrollment)
                 .WithMany()
                 .HasForeignKey(l => l.EnrollmentId)

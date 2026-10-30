@@ -13,5 +13,9 @@ namespace Application.Interfaces
             DateTime? to,
             Guid? teacherId,
             Guid? studentId);
+
+        Task<LessonResponseDTO> CancelAsync(
+           Guid id,
+           CancelLessonRequestDTO request);
     }
 }
