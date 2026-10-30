@@ -293,6 +293,144 @@ namespace Application.Services
             }
         }
 
+
+        public async Task<LessonResponseDTO> RescheduleAsync(
+            Guid id,
+            RescheduleLessonRequestDTO request)
+        {
+            if (id == Guid.Empty)
+                return Error("Invalid lesson ID", "BadRequest");
+
+            if (request == null)
+                return Error("Request is required", "BadRequest");
+
+            if (request.NewStartsAt <= DateTime.Now)
+                return Error("New lesson date must be in the future", "BadRequest");
+
+            if (string.IsNullOrWhiteSpace(request.Room))
+                return Error("Room is required", "BadRequest");
+
+            if (request.Room.Trim().Length > 60)
+                return Error("Room cannot exceed 60 characters", "BadRequest");
+
+            if (string.IsNullOrWhiteSpace(request.Reason) ||
+                request.Reason.Trim().Length < 5)
+            {
+                return Error(
+                    "Rescheduling reason must have at least 5 characters",
+                    "BadRequest");
+            }
+
+            try
+            {
+                var lesson = await _lessonRepository.GetByIdAsync(id);
+
+                if (lesson == null)
+                    return Error("Lesson not found", "NotFound");
+
+                if (lesson.Status != LessonStatus.Scheduled)
+                    return Error(
+                        "Only scheduled lessons can be rescheduled",
+                        "Conflict");
+
+                if (lesson.StartsAt <= DateTime.Now)
+                    return Error(
+                        "A lesson that has already started cannot be rescheduled",
+                        "Conflict");
+
+                var enrollment = await _enrollmentRepository
+                    .GetByIdAsync(lesson.EnrollmentId);
+
+                if (enrollment == null)
+                    return Error("Enrollment not found", "NotFound");
+
+                var newEndsAt = request.NewStartsAt.AddMinutes(
+                    lesson.DurationMinutes);
+
+                if (await _lessonRepository.HasTeacherConflictAsync(
+                    lesson.TeacherId,
+                    request.NewStartsAt,
+                    newEndsAt,
+                    lesson.Id))
+                {
+                    return Error(
+                        "Conflict: teacher - Teacher already has a lesson at this time",
+                        "Conflict");
+                }
+
+                if (await _lessonRepository.HasStudentConflictAsync(
+                    enrollment.StudentId,
+                    request.NewStartsAt,
+                    newEndsAt,
+                    lesson.Id))
+                {
+                    return Error(
+                        "Conflict: student - Student already has a lesson at this time",
+                        "Conflict");
+                }
+
+                if (await _lessonRepository.HasRoomConflictAsync(
+                    request.Room,
+                    request.NewStartsAt,
+                    newEndsAt,
+                    lesson.Id))
+                {
+                    return Error(
+                        "Conflict: room - Room is already booked at this time",
+                        "Conflict");
+                }
+
+                // Save the original information for the history
+                var oldStartsAt = lesson.StartsAt;
+                var oldRoom = lesson.Room;
+
+                var lessonChange = new LessonChange(
+                    lesson,
+                    oldStartsAt,
+                    request.NewStartsAt,
+                    oldRoom,
+                    request.Room.Trim(),
+                    request.Reason);
+
+                // Update the lesson
+                lesson.Reschedule(
+                    request.NewStartsAt,
+                    request.Room);
+
+                // Save the lesson and history together
+                await _lessonRepository.UpdateWithHistoryAsync(
+                    lesson,
+                    lessonChange);
+
+                return new LessonResponseDTO
+                {
+                    Message = "Lesson rescheduled successfully",
+                    Status = "Success",
+                    Data = new
+                    {
+                        id = lesson.Id,
+                        startsAt = lesson.StartsAt,
+                        endsAt = lesson.EndsAt,
+                        room = lesson.Room,
+                        status = lesson.Status.ToString()
+                    }
+                };
+            }
+            catch (ArgumentException ex)
+            {
+                return Error(ex.Message, "BadRequest");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Error(ex.Message, "Conflict");
+            }
+            catch (Exception)
+            {
+                return Error("An unexpected error occurred", "Error");
+            }
+        }
+
+
         private static LessonResponseDTO Error(
             string message,
             string status)
