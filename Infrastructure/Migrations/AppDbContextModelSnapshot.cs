@@ -236,6 +236,40 @@ namespace Infrastructure.Migrations
                     b.ToTable("Teachers", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.Tuition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<DateTime>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReferenceMonth")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EnrollmentId", "ReferenceMonth")
+                        .IsUnique();
+
+                    b.ToTable("Tuitions", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -391,6 +425,17 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Guardian");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Tuition", b =>
+                {
+                    b.HasOne("Domain.Entities.Enrollment", "Enrollment")
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Enrollment");
                 });
 #pragma warning restore 612, 618
         }
