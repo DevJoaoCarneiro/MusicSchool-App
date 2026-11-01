@@ -283,21 +283,19 @@ namespace Application.Services
                 }
 
                 var result = await _studentRepository.GetAllAsync(
-                    name,
-                    page,
-                    pageSize
-                );
+    name,
+    page,
+    pageSize,
+    student => new StudentListItem
+    {
+        Id = student.Id,
+        Name = student.Name,
+        Email = student.Email,
+        Phone = student.Phone,
+        BirthDate = student.BirthDate
+    }
+);
 
-                var items = result.Students.Select(student =>
-                    new StudentListItem
-                    {
-                        Id = student.Id,
-                        Name = student.Name,
-                        Email = student.Email,
-                        Phone = student.Phone,
-                        BirthDate = student.BirthDate
-                    }
-                ).ToList();
 
                 return new StudentListResponseDTO
                 {
@@ -305,7 +303,7 @@ namespace Application.Services
                     Status = "Success",
                     Data = new StudentListData
                     {
-                        Items = items,
+                        Items = result.Items,
                         Page = page,
                         PageSize = pageSize,
                         Total = result.Total

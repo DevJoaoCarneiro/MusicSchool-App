@@ -1,4 +1,5 @@
 ﻿using Domain.Entities;
+using System.Linq.Expressions;
 
 namespace Domain.Interfaces
 {
@@ -10,10 +11,12 @@ namespace Domain.Interfaces
 
         Task<bool> ExistsByCpfAsync(string cpf);
 
-        Task<(List<Teacher> Items, int Total)> GetAllAsync(
-            string? name,
-            int page,
-            int pageSize);
+        Task<(List<TResult> Items, int Total)> GetAllAsync<TResult>(
+    string? name,
+    int page,
+    int pageSize,
+    Expression<Func<Teacher, TResult>> selector
+);
 
         Task<Teacher?> GetByIdAsync(Guid id);
 

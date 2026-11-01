@@ -4,6 +4,7 @@ using Domain.Interfaces;
 using Infrastructure.Context;
 using Infrastructure.Repositories;
 using Infrastructure.Security;
+using Infrastructure.Seeding;
 using Microsoft.EntityFrameworkCore;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -120,6 +121,20 @@ using (var scope = app.Services.CreateScope())
         .GetRequiredService<AppDbContext>();
 
     dbContext.Database.Migrate();
+
+    var securityService = scope.ServiceProvider
+        .GetRequiredService<ISecurityService>();
+
+    await AdminSeed.SeedAsync(dbContext, securityService);
+
+    if (builder.Environment.IsEnvironment("LoadTest") &&
+        string.Equals(
+            builder.Configuration["LOAD_TEST_SEED"],
+            "true",
+            StringComparison.OrdinalIgnoreCase))
+    {
+        await LoadTestSeed.SeedAsync(dbContext);
+    }
 }
 
 

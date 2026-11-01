@@ -1,5 +1,6 @@
 ﻿
 using Domain.Entities;
+using System.Linq.Expressions;
 
 namespace Domain.Interfaces
 {
@@ -29,11 +30,12 @@ namespace Domain.Interfaces
             DateTime endsAt,
             Guid? excludeLessonId = null);
 
-        Task<List<Lesson>> GetByDateRangeAsync(
-            DateTime from,
-            DateTime to,
-            Guid? teacherId,
-            Guid? studentId);
+        Task<List<TResult>> GetByDateRangeAsync<TResult>(
+    DateTime from,
+    DateTime to,
+    Guid? teacherId,
+    Guid? studentId,
+    Expression<Func<Lesson, Teacher, TResult>> selector);
 
         Task<Lesson> UpdateWithHistoryAsync(
     Lesson lesson,

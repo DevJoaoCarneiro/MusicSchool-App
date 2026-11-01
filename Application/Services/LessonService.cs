@@ -155,6 +155,7 @@ namespace Application.Services
             }
         }
 
+
         public async Task<LessonResponseDTO> GetByDateRangeAsync(
             DateTime? from,
             DateTime? to,
@@ -193,36 +194,37 @@ namespace Application.Services
             if (studentId == Guid.Empty)
                 return Error("Invalid studentId", "BadRequest");
 
-
-
-
             try
             {
                 var lessons = await _lessonRepository.GetByDateRangeAsync(
                     startDate,
                     endDate,
                     teacherId,
-                    studentId);
-
-                var results = new List<object>();
-
-                foreach (var lesson in lessons)
-                {
-                    var teacher = await _teacherRepository.GetByIdAsync(
-                        lesson.TeacherId);
-
-                    results.Add(new
+                    studentId,
+                    (lesson, teacher) => new
                     {
                         id = lesson.Id,
                         studentName = lesson.Enrollment.Student.Name,
-                        teacherName = teacher?.Name,
+                        teacherName = teacher.Name,
                         instrument = lesson.Enrollment.Instrument.Name,
                         startsAt = lesson.StartsAt,
-                        endsAt = lesson.EndsAt,
+                        endsAt = lesson.StartsAt.AddMinutes(
+                            lesson.DurationMinutes),
                         room = lesson.Room,
-                        status = lesson.Status.ToString()
+                        status = lesson.Status
                     });
-                }
+
+                var results = lessons.Select(lesson => new
+                {
+                    lesson.id,
+                    lesson.studentName,
+                    lesson.teacherName,
+                    lesson.instrument,
+                    lesson.startsAt,
+                    lesson.endsAt,
+                    lesson.room,
+                    status = lesson.status.ToString()
+                }).ToList();
 
                 return new LessonResponseDTO
                 {
@@ -236,6 +238,7 @@ namespace Application.Services
                 return Error("An unexpected error occurred", "Error");
             }
         }
+
 
 
         public async Task<LessonResponseDTO> CancelAsync(

@@ -141,11 +141,13 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EnrollmentId");
-
                     b.HasIndex("StartsAt");
 
                     b.HasIndex("TeacherId");
+
+                    b.HasIndex("EnrollmentId", "StartsAt");
+
+                    b.HasIndex("TeacherId", "StartsAt");
 
                     b.ToTable("Lessons", null, t =>
                         {
@@ -230,6 +232,8 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("Name");
 
                     b.ToTable("Students", (string)null);
                 });
