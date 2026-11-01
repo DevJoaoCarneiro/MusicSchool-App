@@ -2,6 +2,7 @@
 using Domain.Interfaces;
 using Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Infrastructure.Repositories
 {
@@ -33,10 +34,11 @@ namespace Infrastructure.Repositories
                 .AnyAsync(t => t.Cpf == cpf);
         }
 
-        public async Task<(List<Teacher> Items, int Total)> GetAllAsync(
-            string? name,
-            int page,
-            int pageSize)
+        public async Task<(List<TResult> Items, int Total)> GetAllAsync<TResult>(
+    string? name,
+    int page,
+    int pageSize,
+    Expression<Func<Teacher, TResult>> selector)
         {
             var query = _context.Teachers
                 .AsNoTracking()
@@ -44,8 +46,10 @@ namespace Infrastructure.Repositories
 
             if (!string.IsNullOrWhiteSpace(name))
             {
+                var search = name.Trim();
+
                 query = query.Where(t =>
-                EF.Functions.ILike(t.Name, $"%{name.Trim()}%"));
+                    EF.Functions.ILike(t.Name, $"%{search}%"));
             }
 
             var total = await query.CountAsync();
@@ -54,6 +58,7 @@ namespace Infrastructure.Repositories
                 .OrderBy(t => t.Name)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(selector)
                 .ToListAsync();
 
             return (items, total);
@@ -61,6 +66,7 @@ namespace Infrastructure.Repositories
         public async Task<Teacher?> GetByIdAsync(Guid id)
         {
             return await _context.Teachers
+                .AsNoTracking()
                 .FirstOrDefaultAsync(t => t.Id == id);
         }
 

@@ -59,7 +59,7 @@ namespace Api.Controllers
 
 
         [HttpGet]
-        [Authorize(Roles = "Admin,Teacher")]
+        [Authorize(Roles = "Admin,Secretary,Teacher")]
         public async Task<IActionResult> GetByDateRange(
             [FromQuery] DateTime? from,
             [FromQuery] DateTime? to,

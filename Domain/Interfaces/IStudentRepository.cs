@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq.Expressions;
 
 namespace Domain.Interfaces
 {
@@ -15,11 +16,12 @@ namespace Domain.Interfaces
 
         Task<Student?> GetByIdAsync(Guid id);
 
-        Task<(List<Student> Students, int Total)> GetAllAsync(
-            string? name,
-            int page,
-            int pageSize
-        );
+        Task<(List<TResult> Items, int Total)> GetAllAsync<TResult>(
+    string? name,
+    int page,
+    int pageSize,
+    Expression<Func<Student, TResult>> selector
+);
 
         Task<bool> ExistsByEmailExceptIdAsync(
             string email,

@@ -71,6 +71,10 @@ namespace Infrastructure.Persistence
 
             builder.HasIndex(l => l.StartsAt);
             builder.HasIndex(l => l.TeacherId);
+
+            builder.HasIndex(l => new { l.TeacherId, l.StartsAt });
+
+            builder.HasIndex(l => new { l.EnrollmentId, l.StartsAt });
         }
     }
 }

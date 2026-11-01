@@ -3,6 +3,7 @@ using Domain.Entities;
 using Domain.Interfaces;
 using Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Infrastructure.Repositories
 {
@@ -26,6 +27,7 @@ namespace Infrastructure.Repositories
         public async Task<Lesson?> GetByIdAsync(Guid id)
         {
             return await _context.Lessons
+                .AsNoTracking()
                 .FirstOrDefaultAsync(l => l.Id == id);
         }
 
@@ -79,37 +81,37 @@ namespace Infrastructure.Repositories
                 l.StartsAt.AddMinutes(l.DurationMinutes) > startsAt);
         }
 
-        public async Task<List<Lesson>> GetByDateRangeAsync(
+
+        public async Task<List<TResult>> GetByDateRangeAsync<TResult>(
             DateTime from,
             DateTime to,
             Guid? teacherId,
-            Guid? studentId)
+            Guid? studentId,
+            Expression<Func<Lesson, Teacher, TResult>> selector)
         {
             var query = _context.Lessons
-                .Include(l => l.Enrollment)
-                    .ThenInclude(e => e.Student)
-                .Include(l => l.Enrollment)
-                    .ThenInclude(e => e.Instrument)
+                .AsNoTracking()
                 .Where(l =>
                     l.StartsAt >= from &&
                     l.StartsAt < to.Date.AddDays(1));
 
             if (teacherId.HasValue)
-            {
-                query = query.Where(l =>
-                    l.TeacherId == teacherId.Value);
-            }
+                query = query.Where(l => l.TeacherId == teacherId.Value);
 
             if (studentId.HasValue)
-            {
                 query = query.Where(l =>
                     l.Enrollment.StudentId == studentId.Value);
-            }
 
             return await query
                 .OrderBy(l => l.StartsAt)
+                .Join(
+                    _context.Teachers.AsNoTracking(),
+                    lesson => lesson.TeacherId,
+                    teacher => teacher.Id,
+                    selector)
                 .ToListAsync();
         }
+
 
         public async Task<Lesson> UpdateWithHistoryAsync(
     Lesson lesson,
