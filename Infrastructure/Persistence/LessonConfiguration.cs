@@ -75,6 +75,16 @@ namespace Infrastructure.Persistence
             builder.HasIndex(l => new { l.TeacherId, l.StartsAt });
 
             builder.HasIndex(l => new { l.EnrollmentId, l.StartsAt });
+
+            builder.Property(l => l.LessonSeriesId)
+    .IsRequired(false);
+
+            builder.HasOne(l => l.LessonSeries)
+                .WithMany(s => s.Lessons)
+                .HasForeignKey(l => l.LessonSeriesId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(l => l.LessonSeriesId);
         }
     }
 }

@@ -156,6 +156,208 @@ namespace Application.Services
         }
 
 
+        public async Task<LessonResponseDTO> CreateRecurringAsync(
+            CreateRecurringLessonDTO request)
+        {
+            if (request == null)
+                return Error("Request is required", "BadRequest");
+
+            if (request.EnrollmentId == Guid.Empty)
+                return Error("Enrollment is required", "BadRequest");
+
+            if (request.TeacherId == Guid.Empty)
+                return Error("Teacher is required", "BadRequest");
+
+            if (!Enum.TryParse<DayOfWeek>(
+                request.Weekday,
+                true,
+                out var weekday))
+            {
+                return Error("Invalid weekday", "BadRequest");
+            }
+
+            if (!TimeSpan.TryParseExact(
+                request.Time,
+                @"hh\:mm",
+                System.Globalization.CultureInfo.InvariantCulture,
+                out var lessonTime))
+            {
+                return Error("Invalid time. Use HH:mm format", "BadRequest");
+            }
+
+            if (request.DurationMinutes < 30 ||
+                request.DurationMinutes > 120)
+            {
+                return Error(
+                    "Lesson duration must be between 30 and 120 minutes",
+                    "BadRequest");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Room))
+                return Error("Room is required", "BadRequest");
+
+            if (request.Room.Trim().Length > 60)
+                return Error("Room cannot exceed 60 characters", "BadRequest");
+
+            var startDate = request.StartDate.Date;
+            var endDate = request.EndDate.Date;
+
+            if (endDate < startDate)
+                return Error("End date must be on or after start date", "BadRequest");
+
+            if (endDate > startDate.AddMonths(6))
+                return Error("Recurring period cannot exceed six months", "BadRequest");
+
+            try
+            {
+                var enrollment = await _enrollmentRepository
+                    .GetByIdAsync(request.EnrollmentId);
+
+                if (enrollment == null)
+                    return Error("Enrollment not found", "NotFound");
+
+                if (enrollment.Status != EnrollmentStatus.Active)
+                    return Error("Enrollment is inactive", "Conflict");
+
+                var teacher = await _teacherRepository
+                    .GetByIdAsync(request.TeacherId);
+
+                if (teacher == null)
+                    return Error("Teacher not found", "NotFound");
+
+                var instrumentName = enrollment.Instrument.Name;
+
+                var teachesInstrument = teacher.Specialties.Any(s =>
+                    !string.IsNullOrWhiteSpace(s) &&
+                    string.Equals(
+                        s.Trim(),
+                        instrumentName.Trim(),
+                        StringComparison.OrdinalIgnoreCase));
+
+                if (!teachesInstrument)
+                {
+                    return Error(
+                        "Teacher does not teach the instrument of this enrollment",
+                        "BadRequest");
+                }
+
+                // Encontra a primeira data que corresponde ao dia da semana.
+                var firstDate = startDate.AddDays(
+                    ((int)weekday - (int)startDate.DayOfWeek + 7) % 7);
+
+                var dates = new List<DateTime>();
+
+                for (var date = firstDate;
+                     date <= endDate;
+                     date = date.AddDays(7))
+                {
+                    dates.Add(date);
+                }
+
+                if (dates.Count == 0)
+                    return Error(
+                        "No lessons found in the selected period",
+                        "BadRequest");
+
+                var lessons = new List<Lesson>();
+                var conflictingDates = new List<string>();
+
+                foreach (var date in dates)
+                {
+                    var startsAt = date.Add(lessonTime);
+                    var endsAt = startsAt.AddMinutes(request.DurationMinutes);
+
+                    if (startsAt <= DateTime.Now)
+                    {
+                        return Error(
+                            $"Lesson date {date:yyyy-MM-dd} must be in the future",
+                            "BadRequest");
+                    }
+
+                    var teacherConflict =
+                        await _lessonRepository.HasTeacherConflictAsync(
+                            request.TeacherId, startsAt, endsAt);
+
+                    var studentConflict =
+                        await _lessonRepository.HasStudentConflictAsync(
+                            enrollment.StudentId, startsAt, endsAt);
+
+                    var roomConflict =
+                        await _lessonRepository.HasRoomConflictAsync(
+                            request.Room, startsAt, endsAt);
+
+                    if (teacherConflict || studentConflict || roomConflict)
+                    {
+                        conflictingDates.Add(date.ToString("yyyy-MM-dd"));
+                        continue;
+                    }
+
+                    var lesson = new Lesson(
+                        enrollment,
+                        request.TeacherId,
+                        startsAt,
+                        request.DurationMinutes,
+                        request.Room);
+
+                    lessons.Add(lesson);
+                }
+
+                // Nenhuma aula será salva se houver qualquer conflito.
+                if (conflictingDates.Count > 0)
+                {
+                    return new LessonResponseDTO
+                    {
+                        Message = "Conflicts found in recurring lessons",
+                        Status = "Conflict",
+                        Data = new
+                        {
+                            conflictingDates
+                        }
+                    };
+                }
+
+                var series = new LessonSeries(
+                    enrollment.Id,
+                    teacher.Id,
+                    weekday,
+                    lessonTime,
+                    startDate,
+                    endDate,
+                    request.DurationMinutes,
+                    request.Room);
+
+                foreach (var lesson in lessons)
+                {
+                    lesson.AssociateWithSeries(series);
+                }
+
+                await _lessonRepository.AddRecurringAsync(series, lessons);
+
+                return new LessonResponseDTO
+                {
+                    Message = "Recurring lessons scheduled successfully",
+                    Status = "Success",
+                    Data = new
+                    {
+                        seriesId = series.Id,
+                        lessonsCreated = lessons.Count,
+                        firstLesson = lessons.First().StartsAt,
+                        lastLesson = lessons.Last().StartsAt
+                    }
+                };
+            }
+            catch (ArgumentException ex)
+            {
+                return Error(ex.Message, "BadRequest");
+            }
+            catch (Exception)
+            {
+                return Error("An unexpected error occurred", "Error");
+            }
+        }
+
+
+
         public async Task<LessonResponseDTO> GetByDateRangeAsync(
             DateTime? from,
             DateTime? to,

@@ -37,6 +37,26 @@ namespace Api.Controllers
         }
 
 
+        [HttpPost("recurring")]
+        [Authorize(Roles = "Admin,Secretary")]
+        public async Task<IActionResult> CreateRecurring(
+            [FromBody] CreateRecurringLessonDTO request)
+        {
+            var response = await _lessonServices.CreateRecurringAsync(request);
+
+            return response.Status switch
+            {
+                "Success" => Ok(response),
+                "BadRequest" => BadRequest(response),
+                "NotFound" => NotFound(response),
+                "Conflict" => Conflict(response),
+                _ => StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    response)
+            };
+        }
+
+
         [HttpPatch("{id:guid}/cancel")]
         [Authorize(Roles = "Admin,Secretary")]
         public async Task<IActionResult> Cancel(

@@ -13,10 +13,10 @@ namespace Domain.Interfaces
         Task<Lesson> UpdateAsync(Lesson lesson);
 
         Task<bool> HasTeacherConflictAsync(
-    Guid teacherId,
-    DateTime startsAt,
-    DateTime endsAt,
-    Guid? excludeLessonId = null);
+            Guid teacherId,
+            DateTime startsAt,
+            DateTime endsAt,
+            Guid? excludeLessonId = null);
 
         Task<bool> HasStudentConflictAsync(
             Guid studentId,
@@ -31,14 +31,18 @@ namespace Domain.Interfaces
             Guid? excludeLessonId = null);
 
         Task<List<TResult>> GetByDateRangeAsync<TResult>(
-    DateTime from,
-    DateTime to,
-    Guid? teacherId,
-    Guid? studentId,
-    Expression<Func<Lesson, Teacher, TResult>> selector);
+            DateTime from,
+            DateTime to,
+            Guid? teacherId,
+            Guid? studentId,
+            Expression<Func<Lesson, Teacher, TResult>> selector);
 
         Task<Lesson> UpdateWithHistoryAsync(
-    Lesson lesson,
-    LessonChange lessonChange);
+            Lesson lesson,
+            LessonChange lessonChange);
+
+        Task AddRecurringAsync(
+            LessonSeries series,
+            List<Lesson> lessons);
     }
 }

@@ -16,6 +16,9 @@ namespace Domain.Entities
 
         public Guid EnrollmentId { get; private set; }
         public Enrollment Enrollment { get; private set; } = null!;
+        public Guid? LessonSeriesId { get; private set; }
+
+        public LessonSeries? LessonSeries { get; private set; }
 
         public Guid TeacherId { get; private set; }
 
@@ -131,6 +134,23 @@ namespace Domain.Entities
 
             StartsAt = newStartsAt;
             Room = newRoom.Trim();
+        }
+
+        public void AssociateWithSeries(LessonSeries series)
+        {
+            if (series == null)
+                throw new ArgumentNullException(nameof(series));
+
+            if (series.EnrollmentId != EnrollmentId)
+                throw new ArgumentException(
+                    "Lesson series enrollment does not match");
+
+            if (series.TeacherId != TeacherId)
+                throw new ArgumentException(
+                    "Lesson series teacher does not match");
+
+            LessonSeriesId = series.Id;
+            LessonSeries = series;
         }
 
     }

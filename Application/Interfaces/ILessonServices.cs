@@ -15,11 +15,14 @@ namespace Application.Interfaces
             Guid? studentId);
 
         Task<LessonResponseDTO> CancelAsync(
-           Guid id,
-           CancelLessonRequestDTO request);
+            Guid id,
+            CancelLessonRequestDTO request);
 
         Task<LessonResponseDTO> RescheduleAsync(
-    Guid id,
-    RescheduleLessonRequestDTO request);
+            Guid id,
+            RescheduleLessonRequestDTO request);
+
+        Task<LessonResponseDTO> CreateRecurringAsync(
+            CreateRecurringLessonDTO request);
     }
 }
