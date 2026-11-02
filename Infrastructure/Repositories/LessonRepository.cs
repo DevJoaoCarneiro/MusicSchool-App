@@ -24,6 +24,17 @@ namespace Infrastructure.Repositories
             return lesson;
         }
 
+        public async Task AddRecurringAsync(
+    LessonSeries series,
+    List<Lesson> lessons)
+        {
+            _context.LessonSeries.Add(series);
+
+            _context.Lessons.AddRange(lessons);
+
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<Lesson?> GetByIdAsync(Guid id)
         {
             return await _context.Lessons
