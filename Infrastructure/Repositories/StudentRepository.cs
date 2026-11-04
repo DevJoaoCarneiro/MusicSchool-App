@@ -2,6 +2,7 @@
 using Domain.Interfaces;
 using Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Infrastructure.Repositories
 {
@@ -38,33 +39,40 @@ namespace Infrastructure.Repositories
         public async Task<Student?> GetByIdAsync(Guid id)
         {
             return await _context.Students
+                .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.Id == id);
         }
 
-        public async Task<(List<Student> Students, int Total)> GetAllAsync(
-            string? name,
-            int page,
-            int pageSize)
+        public async Task<(List<TResult> Items, int Total)> GetAllAsync<TResult>(
+    string? name,
+    int page,
+    int pageSize,
+    Expression<Func<Student, TResult>> selector)
         {
-            var query = _context.Students.AsQueryable();
+            var query = _context.Students
+                .AsNoTracking()
+                .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(name))
             {
+                var search = name.Trim().ToLower();
+
                 query = query.Where(s =>
-                    s.Name.ToLower().Contains(name.ToLower()));
+                    s.Name.ToLower().Contains(search));
             }
 
             var total = await query.CountAsync();
 
-            var students = await query
+            var items = await query
                 .OrderBy(s => s.Name)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(selector)
                 .ToListAsync();
 
-            return (students, total);
+            return (items, total);
         }
-        
+
         public async Task<bool> ExistsByEmailExceptIdAsync(
             string email,
             Guid id)

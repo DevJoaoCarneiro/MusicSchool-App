@@ -156,9 +156,16 @@ namespace Application.Services
                 }
 
                 var teachers = await _teacherRepository.GetAllAsync(
-                    name,
-                    page,
-                    pageSize);
+    name,
+    page,
+    pageSize,
+    t => new TeacherListItem
+    {
+        Id = t.Id,
+        Name = t.Name,
+        Email = t.Email,
+        Specialties = t.Specialties
+    });
 
                 return new TeacherListResponseDTO
                 {
@@ -166,15 +173,7 @@ namespace Application.Services
                     Status = "Success",
                     Data = new TeacherListData
                     {
-                        Items = teachers.Items
-                            .Select(t => new TeacherListItem
-                            {
-                                Id = t.Id,
-                                Name = t.Name,
-                                Email = t.Email,
-                                Specialties = t.Specialties
-                            })
-                            .ToList(),
+                        Items = teachers.Items,
 
                         Page = page,
                         PageSize = pageSize,

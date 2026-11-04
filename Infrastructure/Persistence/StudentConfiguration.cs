@@ -37,6 +37,8 @@ namespace Infrastructure.Persistence
             builder.HasIndex(s => s.Cpf)
                 .IsUnique();
 
+            builder.HasIndex(s => s.Name);
+
             builder.Property(s => s.BirthDate)
                 .IsRequired()
                 .HasColumnType("date");

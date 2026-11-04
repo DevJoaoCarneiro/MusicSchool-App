@@ -26,11 +26,6 @@ namespace Api.Controllers
         {
             var response = await _services.CreateAsync(request);
 
-            if (response.Status == "Success" && response.Data is Application.Response.InstrumentData data)
-            {
-                return CreatedAtAction(nameof(GetById), new { id = data.Id }, response);
-            }
-
             return MapResponse(response);
         }
 

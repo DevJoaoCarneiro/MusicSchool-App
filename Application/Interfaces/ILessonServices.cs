@@ -13,5 +13,16 @@ namespace Application.Interfaces
             DateTime? to,
             Guid? teacherId,
             Guid? studentId);
+
+        Task<LessonResponseDTO> CancelAsync(
+            Guid id,
+            CancelLessonRequestDTO request);
+
+        Task<LessonResponseDTO> RescheduleAsync(
+            Guid id,
+            RescheduleLessonRequestDTO request);
+
+        Task<LessonResponseDTO> CreateRecurringAsync(
+            CreateRecurringLessonDTO request);
     }
 }

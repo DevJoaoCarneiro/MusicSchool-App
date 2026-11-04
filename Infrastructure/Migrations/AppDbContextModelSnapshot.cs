@@ -110,11 +110,21 @@ namespace Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<int>("DurationMinutes")
                         .HasColumnType("integer");
 
                     b.Property<Guid>("EnrollmentId")
                         .HasColumnType("uuid");
+
+                    b.Property<Guid?>("LessonSeriesId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("Room")
                         .IsRequired()
@@ -134,11 +144,15 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EnrollmentId");
+                    b.HasIndex("LessonSeriesId");
 
                     b.HasIndex("StartsAt");
 
                     b.HasIndex("TeacherId");
+
+                    b.HasIndex("EnrollmentId", "StartsAt");
+
+                    b.HasIndex("TeacherId", "StartsAt");
 
                     b.ToTable("Lessons", null, t =>
                         {
@@ -146,6 +160,87 @@ namespace Infrastructure.Migrations
 
                             t.HasCheckConstraint("CK_Lessons_Room", "length(trim(\"Room\")) > 0");
                         });
+                });
+
+            modelBuilder.Entity("Domain.Entities.LessonChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid>("LessonId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("NewRoom")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTime>("NewStartsAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("OldRoom")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTime>("OldStartsAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LessonId");
+
+                    b.ToTable("LessonChanges", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.LessonSeries", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Room")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("TeacherId")
+                        .HasColumnType("uuid");
+
+                    b.Property<TimeSpan>("Time")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<string>("Weekday")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EnrollmentId");
+
+                    b.HasIndex("TeacherId");
+
+                    b.ToTable("LessonSeries", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Student", b =>
@@ -184,6 +279,8 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("Name");
 
                     b.ToTable("Students", (string)null);
                 });
@@ -289,6 +386,11 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Domain.Entities.LessonSeries", "LessonSeries")
+                        .WithMany("Lessons")
+                        .HasForeignKey("LessonSeriesId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Domain.Entities.Teacher", null)
                         .WithMany()
                         .HasForeignKey("TeacherId")
@@ -296,6 +398,34 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Enrollment");
+
+                    b.Navigation("LessonSeries");
+                });
+
+            modelBuilder.Entity("Domain.Entities.LessonChange", b =>
+                {
+                    b.HasOne("Domain.Entities.Lesson", "Lesson")
+                        .WithMany()
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+                });
+
+            modelBuilder.Entity("Domain.Entities.LessonSeries", b =>
+                {
+                    b.HasOne("Domain.Entities.Enrollment", null)
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Teacher", null)
+                        .WithMany()
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Domain.Entities.Student", b =>
@@ -384,6 +514,11 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Guardian");
+                });
+
+            modelBuilder.Entity("Domain.Entities.LessonSeries", b =>
+                {
+                    b.Navigation("Lessons");
                 });
 #pragma warning restore 612, 618
         }

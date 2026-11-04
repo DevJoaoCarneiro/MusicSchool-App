@@ -36,8 +36,50 @@ namespace Api.Controllers
             };
         }
 
+
+        [HttpPost("recurring")]
+        [Authorize(Roles = "Admin,Secretary")]
+        public async Task<IActionResult> CreateRecurring(
+            [FromBody] CreateRecurringLessonDTO request)
+        {
+            var response = await _lessonServices.CreateRecurringAsync(request);
+
+            return response.Status switch
+            {
+                "Success" => Ok(response),
+                "BadRequest" => BadRequest(response),
+                "NotFound" => NotFound(response),
+                "Conflict" => Conflict(response),
+                _ => StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    response)
+            };
+        }
+
+
+        [HttpPatch("{id:guid}/cancel")]
+        [Authorize(Roles = "Admin,Secretary")]
+        public async Task<IActionResult> Cancel(
+            Guid id,
+            [FromBody] CancelLessonRequestDTO request)
+        {
+            var response = await _lessonServices.CancelAsync(id, request);
+
+            return response.Status switch
+            {
+                "Success" => Ok(response),
+                "BadRequest" => BadRequest(response),
+                "NotFound" => NotFound(response),
+                "Conflict" => Conflict(response),
+                _ => StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    response)
+            };
+        }
+
+
         [HttpGet]
-        [Authorize(Roles = "Admin,Teacher")]
+        [Authorize(Roles = "Admin,Secretary,Teacher")]
         public async Task<IActionResult> GetByDateRange(
             [FromQuery] DateTime? from,
             [FromQuery] DateTime? to,
@@ -73,5 +115,27 @@ namespace Api.Controllers
                     });
             }
         }
+
+
+        [HttpPatch("{id:guid}/reschedule")]
+        [Authorize(Roles = "Admin,Secretary")]
+        public async Task<IActionResult> Reschedule(
+            Guid id,
+            [FromBody] RescheduleLessonRequestDTO request)
+        {
+            var response = await _lessonServices.RescheduleAsync(id, request);
+
+            return response.Status switch
+            {
+                "Success" => Ok(response),
+                "BadRequest" => BadRequest(response),
+                "NotFound" => NotFound(response),
+                "Conflict" => Conflict(response),
+                _ => StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    response)
+            };
+        }
+
     }
 }

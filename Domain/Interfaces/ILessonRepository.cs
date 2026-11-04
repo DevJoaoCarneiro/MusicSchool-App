@@ -1,5 +1,6 @@
 ﻿
 using Domain.Entities;
+using System.Linq.Expressions;
 
 namespace Domain.Interfaces
 {
@@ -7,25 +8,41 @@ namespace Domain.Interfaces
     {
         Task<Lesson> AddAsync(Lesson lesson);
 
+        Task<Lesson?> GetByIdAsync(Guid id);
+
+        Task<Lesson> UpdateAsync(Lesson lesson);
+
         Task<bool> HasTeacherConflictAsync(
             Guid teacherId,
             DateTime startsAt,
-            DateTime endsAt);
+            DateTime endsAt,
+            Guid? excludeLessonId = null);
 
         Task<bool> HasStudentConflictAsync(
             Guid studentId,
             DateTime startsAt,
-            DateTime endsAt);
+            DateTime endsAt,
+            Guid? excludeLessonId = null);
 
         Task<bool> HasRoomConflictAsync(
             string room,
             DateTime startsAt,
-            DateTime endsAt);
+            DateTime endsAt,
+            Guid? excludeLessonId = null);
 
-        Task<List<Lesson>> GetByDateRangeAsync(
+        Task<List<TResult>> GetByDateRangeAsync<TResult>(
             DateTime from,
             DateTime to,
             Guid? teacherId,
-            Guid? studentId);
+            Guid? studentId,
+            Expression<Func<Lesson, Teacher, TResult>> selector);
+
+        Task<Lesson> UpdateWithHistoryAsync(
+            Lesson lesson,
+            LessonChange lessonChange);
+
+        Task AddRecurringAsync(
+            LessonSeries series,
+            List<Lesson> lessons);
     }
 }

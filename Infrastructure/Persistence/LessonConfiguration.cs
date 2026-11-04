@@ -51,6 +51,14 @@ namespace Infrastructure.Persistence
                 .HasConversion<string>()
                 .HasMaxLength(20);
 
+            builder.Property(l => l.Reason)
+    .HasMaxLength(500)
+    .IsRequired(false);
+
+            builder.Property(l => l.CancelledAt)
+                .HasColumnType("timestamp without time zone")
+                .IsRequired(false);
+
             builder.HasOne(l => l.Enrollment)
                 .WithMany()
                 .HasForeignKey(l => l.EnrollmentId)
@@ -63,6 +71,20 @@ namespace Infrastructure.Persistence
 
             builder.HasIndex(l => l.StartsAt);
             builder.HasIndex(l => l.TeacherId);
+
+            builder.HasIndex(l => new { l.TeacherId, l.StartsAt });
+
+            builder.HasIndex(l => new { l.EnrollmentId, l.StartsAt });
+
+            builder.Property(l => l.LessonSeriesId)
+    .IsRequired(false);
+
+            builder.HasOne(l => l.LessonSeries)
+                .WithMany(s => s.Lessons)
+                .HasForeignKey(l => l.LessonSeriesId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(l => l.LessonSeriesId);
         }
     }
 }
