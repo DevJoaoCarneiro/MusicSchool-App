@@ -35,6 +35,23 @@ namespace Infrastructure.Repositories
                 .FirstOrDefaultAsync(e => e.Id == id);
         }
 
+        public async Task UpdateAsync(Enrollment enrollment)
+        {
+            _context.Entry(enrollment).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<Enrollment>> GetActiveUntilAsync(DateTime monthEnd)
+        {
+            return await _context.Enrollments
+                .AsNoTracking()
+                .Where(e =>
+                    e.Status == EnrollmentStatus.Active &&
+                    e.StartDate <= monthEnd)
+                .OrderBy(e => e.Id)
+                .ToListAsync();
+        }
+
         public async Task<bool> HasActiveEnrollmentAsync(
             Guid studentId,
             Guid instrumentId)

@@ -398,6 +398,16 @@ namespace Application.Services
                 };
             }
 
+            if (await _teacherRepository.HasActiveLessonsAsync(id))
+            {
+                return new TeacherResponseDTO
+                {
+                    Message = "Teacher has an active lesson linked",
+                    Status = "conflict",
+                    Data = null
+                };
+            }
+
             await _teacherRepository.DeleteAsync(teacher);
 
             return new TeacherResponseDTO

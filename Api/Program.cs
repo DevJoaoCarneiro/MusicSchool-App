@@ -69,6 +69,9 @@ builder.Services.AddScoped<ITeacherServices, TeacherService>();
 builder.Services.AddScoped<ITeacherRepository, TeacherRepository>();
 builder.Services.AddScoped<ILessonChangeRepository, LessonChangeRepository>();
 
+builder.Services.AddScoped<ITuitionService, TuitionService>();
+builder.Services.AddScoped<ITuitionRepository, TuitionRepository>();
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection")

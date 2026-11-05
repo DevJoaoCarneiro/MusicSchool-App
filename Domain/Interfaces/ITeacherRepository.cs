@@ -24,6 +24,6 @@ namespace Domain.Interfaces
 
         Task DeleteAsync(Teacher teacher);
 
-        //Task<bool> HasActiveClassesAsync(Guid teacherId);
+        Task<bool> HasActiveLessonsAsync(Guid teacherId);
     }
 }

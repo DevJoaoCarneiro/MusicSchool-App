@@ -47,6 +47,14 @@ namespace Infrastructure.Persistence
                 .HasConversion<string>()
                 .HasMaxLength(20);
 
+            builder.Property(e => e.EndDate)
+                .HasColumnType("date")
+                .IsRequired(false);
+
+            builder.Property(e => e.CloseReason)
+                .HasMaxLength(Enrollment.MaxCloseReasonLength)
+                .IsRequired(false);
+
             builder.HasOne(e => e.Student)
                 .WithMany()
                 .HasForeignKey(e => e.StudentId)

@@ -11,6 +11,8 @@ namespace Domain.Interfaces
 
         Task<Enrollment?> GetByIdAsync(Guid id);
 
+        Task UpdateAsync(Enrollment enrollment);
+
         Task<bool> HasActiveEnrollmentAsync(
             Guid studentId,
             Guid instrumentId);
@@ -24,5 +26,6 @@ namespace Domain.Interfaces
             EnrollmentStatus? status,
             int page,
             int pageSize);
+        Task<List<Enrollment>> GetActiveUntilAsync(DateTime monthEnd);
     }
 }

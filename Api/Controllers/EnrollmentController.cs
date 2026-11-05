@@ -5,6 +5,7 @@ using Application.Interfaces;
 using Application.Request;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Application.Response;
 
 namespace Api.Controllers
 {
@@ -27,6 +28,40 @@ namespace Api.Controllers
         {
             var response =
                 await _enrollmentServices.CreateEnrollmentAsync(request);
+
+            return response.Status switch
+            {
+                "Success" => Ok(response),
+                "invalid_argument" => BadRequest(response),
+                "not_found" => NotFound(response),
+                "conflict" => Conflict(response),
+                _ => StatusCode(500, response)
+            };
+        }
+
+        [HttpPatch("{id}/close")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> CloseEnrollment(
+            string id,
+            [FromBody] CloseEnrollmentRequestDTO request)
+        {
+            if (!Guid.TryParse(id, out var enrollmentId))
+            {
+                return BadRequest(new CloseEnrollmentResponseDTO
+                {
+                    Message = "Invalid enrollment ID",
+                    Status = "invalid_argument",
+                    Data = null
+                });
+            }
+
+            var response = await _enrollmentServices
+                .CloseEnrollmentAsync(enrollmentId, request);
 
             return response.Status switch
             {

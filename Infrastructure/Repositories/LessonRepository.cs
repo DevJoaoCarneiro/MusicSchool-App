@@ -42,6 +42,16 @@ namespace Infrastructure.Repositories
                 .FirstOrDefaultAsync(l => l.Id == id);
         }
 
+        public async Task<bool> HasFutureScheduledLessonsByEnrollmentAsync(
+    Guid enrollmentId,
+    DateTime from)
+        {
+            return await _context.Lessons.AnyAsync(l =>
+                l.EnrollmentId == enrollmentId &&
+                l.Status == LessonStatus.Scheduled &&
+                l.StartsAt > from);
+        }
+
         public async Task<Lesson> UpdateAsync(Lesson lesson)
         {
             _context.Lessons.Update(lesson);
