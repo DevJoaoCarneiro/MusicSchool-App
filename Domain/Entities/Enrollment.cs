@@ -22,6 +22,12 @@ namespace Domain.Entities
 
         public EnrollmentStatus Status { get; private set; }
 
+        public const int MaxCloseReasonLength = 500;
+
+        public DateTime? EndDate { get; private set; }
+
+        public string? CloseReason { get; private set; }
+
         // Constructor para Entity Framework Core
         public Enrollment()
         {
@@ -44,9 +50,30 @@ namespace Domain.Entities
             Status = EnrollmentStatus.Active;
         }
 
-        public void Deactivate()
+        public void Close(DateTime endDate, string reason)
         {
-            Status = EnrollmentStatus.Inactive;
+            if (Status == EnrollmentStatus.Closed)
+                throw new InvalidOperationException(
+                    "Enrollment is already closed");
+
+            if (string.IsNullOrWhiteSpace(reason))
+                throw new ArgumentException(
+                    "Reason is required",
+                    nameof(reason));
+
+            if (reason.Trim().Length > MaxCloseReasonLength)
+                throw new ArgumentException(
+                    $"Reason cannot exceed {MaxCloseReasonLength} characters",
+                    nameof(reason));
+
+            if (endDate.Date < StartDate.Date)
+                throw new ArgumentException(
+                    "End date cannot be before start date",
+                    nameof(endDate));
+
+            Status = EnrollmentStatus.Closed;
+            EndDate = endDate.Date;
+            CloseReason = reason.Trim();
         }
     }
 

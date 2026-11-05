@@ -76,6 +76,13 @@ namespace Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
+        public async Task<bool> HasActiveLessonsAsync(Guid teacherId)
+        {
+            return await _context.Lessons.AnyAsync(l =>
+                l.TeacherId == teacherId &&
+                l.Status == LessonStatus.Scheduled);
+        }
+
         public async Task DeleteAsync(Teacher teacher)
         {
             _context.Teachers.Remove(teacher);

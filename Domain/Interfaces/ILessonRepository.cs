@@ -10,6 +10,10 @@ namespace Domain.Interfaces
 
         Task<Lesson?> GetByIdAsync(Guid id);
 
+        Task<bool> HasFutureScheduledLessonsByEnrollmentAsync(
+            Guid enrollmentId,
+            DateTime from);
+
         Task<Lesson> UpdateAsync(Lesson lesson);
 
         Task<bool> HasTeacherConflictAsync(

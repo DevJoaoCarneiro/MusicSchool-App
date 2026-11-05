@@ -9,6 +9,10 @@ namespace Application.Interfaces
         Task<EnrollmentResponseDTO> CreateEnrollmentAsync(
             EnrollmentRequestDTO request);
 
+        Task<CloseEnrollmentResponseDTO> CloseEnrollmentAsync(
+            Guid id,
+            CloseEnrollmentRequestDTO request);
+
         Task<EnrollmentListResponseDTO> GetAllAsync(
             Guid? studentId,
             Guid? instrumentId,

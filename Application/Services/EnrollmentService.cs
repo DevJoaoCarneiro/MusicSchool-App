@@ -12,15 +12,18 @@ namespace Application.Services
         private readonly IEnrollmentRepository _enrollmentRepository;
         private readonly IStudentRepository _studentRepository;
         private readonly IInstrumentRepository _instrumentRepository;
+        private readonly ILessonRepository _lessonRepository;
 
         public EnrollmentService(
             IEnrollmentRepository enrollmentRepository,
             IStudentRepository studentRepository,
-            IInstrumentRepository instrumentRepository)
+            IInstrumentRepository instrumentRepository,
+            ILessonRepository lessonRepository)
         {
             _enrollmentRepository = enrollmentRepository;
             _studentRepository = studentRepository;
             _instrumentRepository = instrumentRepository;
+            _lessonRepository = lessonRepository;
         }
 
         public async Task<EnrollmentResponseDTO> CreateEnrollmentAsync(
@@ -127,6 +130,118 @@ namespace Application.Services
             }
         }
 
+        public async Task<CloseEnrollmentResponseDTO> CloseEnrollmentAsync(
+    Guid id,
+    CloseEnrollmentRequestDTO request)
+        {
+            try
+            {
+                if (id == Guid.Empty)
+                {
+                    return CloseError(
+                        "Invalid enrollment ID",
+                        "invalid_argument");
+                }
+
+                if (request == null)
+                {
+                    return CloseError(
+                        "Request body is required",
+                        "invalid_argument");
+                }
+
+                if (request.EndDate == null)
+                {
+                    return CloseError(
+                        "End date is required",
+                        "invalid_argument");
+                }
+
+                if (string.IsNullOrWhiteSpace(request.Reason))
+                {
+                    return CloseError(
+                        "Reason is required",
+                        "invalid_argument");
+                }
+
+                var reason = request.Reason.Trim();
+
+                if (reason.Length > Enrollment.MaxCloseReasonLength)
+                {
+                    return CloseError(
+                        $"Reason cannot exceed {Enrollment.MaxCloseReasonLength} characters",
+                        "invalid_argument");
+                }
+
+                var enrollment = await _enrollmentRepository.GetByIdAsync(id);
+
+                if (enrollment == null)
+                {
+                    return CloseError("Enrollment not found", "not_found");
+                }
+
+                var endDate = request.EndDate.Value
+                    .ToDateTime(TimeOnly.MinValue);
+
+                if (endDate.Date < enrollment.StartDate.Date)
+                {
+                    return CloseError(
+                        "End date cannot be before the enrollment start date",
+                        "invalid_argument");
+                }
+
+                if (enrollment.Status == EnrollmentStatus.Closed)
+                {
+                    return CloseError(
+                        "Enrollment is already closed",
+                        "conflict");
+                }
+
+                if (await _lessonRepository
+                    .HasFutureScheduledLessonsByEnrollmentAsync(
+                        enrollment.Id,
+                        DateTime.Now))
+                {
+                    return CloseError(
+                        "Enrollment has future scheduled lessons",
+                        "conflict");
+                }
+
+                enrollment.Close(endDate, reason);
+
+                await _enrollmentRepository.UpdateAsync(enrollment);
+
+                return new CloseEnrollmentResponseDTO
+                {
+                    Message = "Enrollment closed successfully",
+                    Status = "Success",
+                    Data = new CloseEnrollmentData
+                    {
+                        Id = enrollment.Id,
+                        Status = enrollment.Status.ToString(),
+                        EndDate = request.EndDate.Value
+                    }
+                };
+            }
+            catch (Exception)
+            {
+                return CloseError(
+                    "An unexpected error occurred while closing the enrollment",
+                    "error");
+            }
+        }
+
+        private static CloseEnrollmentResponseDTO CloseError(
+            string message,
+            string status)
+        {
+            return new CloseEnrollmentResponseDTO
+            {
+                Message = message,
+                Status = status,
+                Data = null
+            };
+        }
         public async Task<EnrollmentListResponseDTO> GetAllAsync(
             Guid? studentId,
             Guid? instrumentId,
@@ -151,7 +266,7 @@ namespace Application.Services
                 }
                 else if (string.Equals(status, "Closed", StringComparison.OrdinalIgnoreCase))
                 {
-                    enrollmentStatus = EnrollmentStatus.Inactive;
+                    enrollmentStatus = EnrollmentStatus.Closed;
                 }
                 else
                 {
