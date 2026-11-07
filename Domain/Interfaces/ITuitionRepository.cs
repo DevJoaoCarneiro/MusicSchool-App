@@ -1,7 +1,4 @@
 ﻿using Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Domain.Interfaces
 {
@@ -9,11 +6,19 @@ namespace Domain.Interfaces
     {
         Task<Tuition?> GetByIdAsync(Guid id);
 
-        Task UpdateAsync(Tuition tuition);
+        Task<bool> RegisterPaymentIfPendingAsync(Tuition tuition);
 
         Task<HashSet<Guid>> GetEnrollmentIdsByReferenceMonthAsync(
             string referenceMonth);
 
         Task AddRangeAsync(IEnumerable<Tuition> tuitions);
+
+        Task<(List<Tuition> Items, int Total)> GetAllAsync(
+            string? referenceMonth,
+            TuitionStatus? status,
+            Guid? enrollmentId,
+            Guid? studentId,
+            int page,
+            int pageSize);
     }
 }

@@ -1,13 +1,24 @@
 @Api_HostAddress = http://localhost:5260
 
-POST {{Api_HostAddress}}/api/user
+@token = <JWT>
+
+POST {{Api_HostAddress}}/api/auth/login
 Content-Type: application/json
+
+{
+  "email": "admin@musicschool.local",
+  "password": "<ADMIN_PASSWORD>"
+}
+
+POST {{Api_HostAddress}}/api/users
+Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "name": "Joao Victor",
   "email": "joao@example.com",
   "password": "P@ssw0rd123",
-  "role": "Student"
+  "role": "Secretary"
 }
 
 ###

@@ -1,4 +1,5 @@
 ﻿using Application.Interfaces;
+using Application.Common;
 using Application.Request;
 using Application.Response;
 using Domain.Interfaces;
@@ -31,7 +32,7 @@ namespace Application.Services
                     {
                         Message = "Parameters is empty or null",
 
-                        Status = "InvalidArgument",
+                        Status = ResponseStatus.InvalidArgument,
 
                         Data = null
                     };
@@ -44,7 +45,7 @@ namespace Application.Services
                     {
                         Message = "Email and password are required",
 
-                        Status = "InvalidArgument",
+                        Status = ResponseStatus.InvalidArgument,
 
                         Data = null
                     };
@@ -57,7 +58,7 @@ namespace Application.Services
                     return new AuthResponseDTO
                     {
                         Message = "Invalid credentials",
-                        Status = "Unauthorized",
+                        Status = ResponseStatus.Unauthorized,
                         Data = null
                     };
                 }
@@ -69,7 +70,7 @@ namespace Application.Services
                     return new AuthResponseDTO
                     {
                         Message = "Invalid credentials",
-                        Status = "Unauthorized",
+                        Status = ResponseStatus.Unauthorized,
                         Data = null
                     };
                 }
@@ -79,7 +80,7 @@ namespace Application.Services
                 return new AuthResponseDTO
                 {
                     Message = "Login successful",
-                    Status = "Success",
+                    Status = ResponseStatus.Success,
                     Data = new AuthData
                     {
                         Token = token,
@@ -100,7 +101,7 @@ namespace Application.Services
                 {
                     Message = "An unexpected error occurred",
 
-                    Status = "Error",
+                    Status = ResponseStatus.Error,
 
                     Data = null
                 };

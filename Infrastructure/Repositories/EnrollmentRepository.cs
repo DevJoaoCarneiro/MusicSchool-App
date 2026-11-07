@@ -1,11 +1,8 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Domain.Entities;
+﻿using Domain.Entities;
+using Domain.Exceptions;
 using Domain.Interfaces;
 using Infrastructure.Context;
+using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories
@@ -22,7 +19,18 @@ namespace Infrastructure.Repositories
         public async Task<Enrollment> AddAsync(Enrollment enrollment)
         {
             _context.Enrollments.Add(enrollment);
-            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (
+                PostgresErrors.Has(ex, PostgresErrors.UniqueViolation))
+            {
+                throw new ConcurrencyConflictException(
+                    "Student already has an active enrollment for this instrument",
+                    ex);
+            }
 
             return enrollment;
         }
@@ -41,13 +49,16 @@ namespace Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<Enrollment>> GetActiveUntilAsync(DateTime monthEnd)
+        public async Task<List<Enrollment>> GetBillableForMonthAsync(
+            DateTime monthStart,
+            DateTime monthEnd)
         {
             return await _context.Enrollments
                 .AsNoTracking()
                 .Where(e =>
-                    e.Status == EnrollmentStatus.Active &&
-                    e.StartDate <= monthEnd)
+                    e.StartDate <= monthEnd &&
+                    (e.Status == EnrollmentStatus.Active ||
+                     (e.EndDate != null && e.EndDate >= monthStart)))
                 .OrderBy(e => e.Id)
                 .ToListAsync();
         }
@@ -70,10 +81,26 @@ namespace Infrastructure.Repositories
                 e.Status == EnrollmentStatus.Active);
         }
 
+        public async Task<bool> HasAnyEnrollmentByStudentAsync(Guid studentId)
+        {
+            return await _context.Enrollments.AnyAsync(e =>
+                e.StudentId == studentId);
+        }
+
+        public async Task<bool> HasLessonWithTeacherAsync(
+            Guid enrollmentId,
+            Guid teacherId)
+        {
+            return await _context.Lessons.AnyAsync(l =>
+                l.EnrollmentId == enrollmentId &&
+                l.TeacherId == teacherId);
+        }
+
         public async Task<(List<Enrollment> Items, int Total)> GetAllAsync(
             Guid? studentId,
             Guid? instrumentId,
             EnrollmentStatus? status,
+            Guid? teacherId,
             int page,
             int pageSize)
         {
@@ -96,6 +123,13 @@ namespace Infrastructure.Repositories
             if (status.HasValue)
             {
                 query = query.Where(e => e.Status == status.Value);
+            }
+
+            if (teacherId.HasValue)
+            {
+                query = query.Where(e => _context.Lessons.Any(l =>
+                    l.EnrollmentId == e.Id &&
+                    l.TeacherId == teacherId.Value));
             }
 
             var total = await query.CountAsync();

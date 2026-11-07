@@ -1,117 +1,59 @@
 ﻿using Application.Interfaces;
 using Application.Request;
-using Application.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers
 {
-
-    [ApiController]
     [Route("api/tuitions")]
-    public class TuitionController : ControllerBase
+    [Authorize(Roles = "Admin,Secretary")]
+    public class TuitionController : ApiControllerBase
     {
         private readonly ITuitionService _tuitionService;
-        private readonly ILogger<TuitionController> _logger;
 
-        public TuitionController(
-            ITuitionService tuitionService,
-            ILogger<TuitionController> logger)
+        public TuitionController(ITuitionService tuitionService)
         {
             _tuitionService = tuitionService;
-            _logger = logger;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? referenceMonth,
+            [FromQuery] string? status,
+            [FromQuery] Guid? enrollmentId,
+            [FromQuery] Guid? studentId,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            var response = await _tuitionService.GetAllAsync(
+                referenceMonth,
+                status,
+                enrollmentId,
+                studentId,
+                page,
+                pageSize);
+
+            return FromStatus(response.Status, response);
         }
 
         [HttpPost("generate")]
-        [Authorize(Roles = "Admin,Secretary")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Generate(
             [FromBody] GenerateTuitionsRequestDTO request)
         {
-            try
-            {
-                var response = await _tuitionService.GenerateAsync(request);
-
-                return response.Status switch
-                {
-                    "Success" => Ok(response),
-                    "invalid_argument" => BadRequest(response),
-                    _ => StatusCode(
-                        StatusCodes.Status500InternalServerError,
-                        response)
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Unexpected error while generating tuitions");
-
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    new GenerateTuitionsResponseDTO
-                    {
-                        Message = "An unexpected error occurred",
-                        Status = "error",
-                        Data = null
-                    });
-            }
+            var response = await _tuitionService.GenerateAsync(request);
+            return FromStatus(response.Status, response);
         }
 
         [HttpPatch("{id}/payment")]
-        [Authorize(Roles = "Admin,Secretary")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status409Conflict)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> RegisterPayment(
             string id,
             [FromBody] RegisterTuitionPaymentRequestDTO request)
         {
-            try
-            {
-                if (!Guid.TryParse(id, out var tuitionId))
-                {
-                    return BadRequest(new RegisterTuitionPaymentResponseDTO
-                    {
-                        Message = "Invalid tuition ID",
-                        Status = "invalid_argument",
-                        Data = null
-                    });
-                }
+            if (!Guid.TryParse(id, out var tuitionId))
+                return InvalidId("tuition");
 
-                var response = await _tuitionService
-                    .RegisterPaymentAsync(tuitionId, request);
-
-                return response.Status switch
-                {
-                    "Success" => Ok(response),
-                    "invalid_argument" => BadRequest(response),
-                    "not_found" => NotFound(response),
-                    "conflict" => Conflict(response),
-                    _ => StatusCode(
-                        StatusCodes.Status500InternalServerError,
-                        response)
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    ex,
-                    "Unexpected error while registering tuition payment");
-
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    new RegisterTuitionPaymentResponseDTO
-                    {
-                        Message = "An unexpected error occurred",
-                        Status = "error",
-                        Data = null
-                    });
-            }
+            var response = await _tuitionService.RegisterPaymentAsync(tuitionId, request);
+            return FromStatus(response.Status, response);
         }
     }
 }

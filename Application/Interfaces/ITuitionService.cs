@@ -11,5 +11,13 @@ namespace Application.Interfaces
         Task<RegisterTuitionPaymentResponseDTO> RegisterPaymentAsync(
             Guid id,
             RegisterTuitionPaymentRequestDTO request);
+
+        Task<TuitionListResponseDTO> GetAllAsync(
+            string? referenceMonth,
+            string? status,
+            Guid? enrollmentId,
+            Guid? studentId,
+            int page,
+            int pageSize);
     }
 }

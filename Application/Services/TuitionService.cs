@@ -1,13 +1,17 @@
-﻿using Application.Interfaces;
+﻿using Application.Common;
+using Application.Interfaces;
 using Application.Request;
 using Application.Response;
 using Domain.Entities;
+using Domain.Exceptions;
 using Domain.Interfaces;
 
 namespace Application.Services
 {
     public class TuitionService : ITuitionService
     {
+        private const int MinReferenceYear = 2000;
+
         private readonly ITuitionRepository _tuitionRepository;
         private readonly IEnrollmentRepository _enrollmentRepository;
 
@@ -32,7 +36,18 @@ namespace Application.Services
                 {
                     return Error(
                         "Reference month is required and must be in the format yyyy-MM",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
+                }
+
+                var monthStart = new DateTime(year, month, 1);
+                var today = DateTime.Today;
+                var nextMonthStart = new DateTime(today.Year, today.Month, 1).AddMonths(1);
+
+                if (year < MinReferenceYear || monthStart > nextMonthStart)
+                {
+                    return Error(
+                        $"Reference month must be between {MinReferenceYear}-01 and {nextMonthStart:yyyy-MM}",
+                        ResponseStatus.InvalidArgument);
                 }
 
                 var referenceMonth = Tuition.FormatReferenceMonth(year, month);
@@ -43,7 +58,7 @@ namespace Application.Services
                     DateTime.DaysInMonth(year, month));
 
                 var enrollments = await _enrollmentRepository
-                    .GetActiveUntilAsync(monthEnd);
+                    .GetBillableForMonthAsync(monthStart, monthEnd);
 
                 var alreadyBilled = await _tuitionRepository
                     .GetEnrollmentIdsByReferenceMonthAsync(referenceMonth);
@@ -61,7 +76,7 @@ namespace Application.Services
                 return new GenerateTuitionsResponseDTO
                 {
                     Message = "Tuitions generated successfully",
-                    Status = "Success",
+                    Status = ResponseStatus.Success,
                     Data = new GenerateTuitionsData
                     {
                         ReferenceMonth = referenceMonth,
@@ -70,46 +85,57 @@ namespace Application.Services
                     }
                 };
             }
+            catch (ConcurrencyConflictException ex)
+            {
+                return Error(ex.Message, ResponseStatus.Conflict);
+            }
             catch (Exception)
             {
                 return Error(
                     "An unexpected error occurred while generating tuitions",
-                    "error");
+                    ResponseStatus.Error);
             }
         }
 
         public async Task<RegisterTuitionPaymentResponseDTO> RegisterPaymentAsync(
-                Guid id,
-                RegisterTuitionPaymentRequestDTO request)
-                {
-                try
-                {
+            Guid id,
+            RegisterTuitionPaymentRequestDTO request)
+        {
+            try
+            {
                 if (id == Guid.Empty)
                 {
                     return PaymentError(
                         "Invalid tuition ID",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
                 if (request == null)
                 {
                     return PaymentError(
                         "Request body is required",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
                 if (request.PaidAt == null)
                 {
                     return PaymentError(
                         "Payment date is required",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
+                }
+
+                if (request.PaidAt.Value > DateOnly.FromDateTime(DateTime.Today))
+                {
+                    return PaymentError(
+                        "Payment date cannot be in the future",
+                        ResponseStatus.InvalidArgument);
                 }
 
                 if (request.Amount == null)
                 {
                     return PaymentError(
                         "Amount is required",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
                 var amount = Math.Round(
@@ -121,48 +147,59 @@ namespace Application.Services
                 {
                     return PaymentError(
                         "Amount must be greater than zero",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
                 if (amount > Tuition.MaxAmount)
                 {
                     return PaymentError(
                         "Amount exceeds the maximum allowed",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
                 if (!TryParsePaymentMethod(request.Method, out var method))
                 {
                     return PaymentError(
                         "Method is required and must be one of: Pix, Cash, Card",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
                 var tuition = await _tuitionRepository.GetByIdAsync(id);
 
                 if (tuition == null)
                 {
-                    return PaymentError("Tuition not found", "not_found");
+                    return PaymentError("Tuition not found", ResponseStatus.NotFound);
                 }
 
                 if (tuition.Status == TuitionStatus.Paid)
                 {
                     return PaymentError(
                         "Tuition is already paid",
-                        "conflict");
+                        ResponseStatus.Conflict);
                 }
 
-                tuition.RegisterPayment(
-                    request.PaidAt.Value.ToDateTime(TimeOnly.MinValue),
-                    amount,
-                    method);
+                if (amount < tuition.Amount)
+                {
+                    return PaymentError(
+                        $"Amount cannot be less than the tuition amount ({tuition.Amount:0.00})",
+                        ResponseStatus.InvalidArgument);
+                }
 
-                await _tuitionRepository.UpdateAsync(tuition);
+                var paidAt = request.PaidAt.Value.ToDateTime(TimeOnly.MinValue);
+
+                tuition.RegisterPayment(paidAt, amount, method);
+
+                if (!await _tuitionRepository.RegisterPaymentIfPendingAsync(tuition))
+                {
+                    return PaymentError(
+                        "Tuition is already paid",
+                        ResponseStatus.Conflict);
+                }
 
                 return new RegisterTuitionPaymentResponseDTO
                 {
                     Message = "Payment registered successfully",
-                    Status = "Success",
+                    Status = ResponseStatus.Success,
                     Data = new RegisterTuitionPaymentData
                     {
                         Id = tuition.Id,
@@ -178,7 +215,93 @@ namespace Application.Services
             {
                 return PaymentError(
                     "An unexpected error occurred while registering the payment",
-                    "error");
+                    ResponseStatus.Error);
+            }
+        }
+
+        public async Task<TuitionListResponseDTO> GetAllAsync(
+            string? referenceMonth,
+            string? status,
+            Guid? enrollmentId,
+            Guid? studentId,
+            int page,
+            int pageSize)
+        {
+            if (!PaginationLimits.IsValid(page, pageSize))
+                return ListError(PaginationLimits.InvalidMessage, ResponseStatus.InvalidArgument);
+
+            string? normalizedMonth = null;
+
+            if (!string.IsNullOrWhiteSpace(referenceMonth))
+            {
+                if (!Tuition.TryParseReferenceMonth(referenceMonth, out var year, out var month))
+                {
+                    return ListError(
+                        "Reference month must be in the format yyyy-MM",
+                        ResponseStatus.InvalidArgument);
+                }
+
+                normalizedMonth = Tuition.FormatReferenceMonth(year, month);
+            }
+
+            TuitionStatus? tuitionStatus = null;
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                var name = Enum.GetNames<TuitionStatus>().FirstOrDefault(n =>
+                    string.Equals(n, status.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                if (name == null)
+                {
+                    return ListError(
+                        "Status must be Pending or Paid",
+                        ResponseStatus.InvalidArgument);
+                }
+
+                tuitionStatus = Enum.Parse<TuitionStatus>(name);
+            }
+
+            try
+            {
+                var (items, total) = await _tuitionRepository.GetAllAsync(
+                    normalizedMonth,
+                    tuitionStatus,
+                    enrollmentId,
+                    studentId,
+                    page,
+                    pageSize);
+
+                return new TuitionListResponseDTO
+                {
+                    Message = "Tuitions retrieved successfully",
+                    Status = ResponseStatus.Success,
+                    Data = new TuitionListData
+                    {
+                        Items = items.Select(t => new TuitionListItemDTO
+                        {
+                            Id = t.Id,
+                            EnrollmentId = t.EnrollmentId,
+                            StudentName = t.Enrollment.Student.Name,
+                            InstrumentName = t.Enrollment.Instrument.Name,
+                            ReferenceMonth = t.ReferenceMonth,
+                            Amount = t.Amount,
+                            DueDate = DateOnly.FromDateTime(t.DueDate),
+                            Status = t.Status.ToString(),
+                            PaidAt = t.PaidAt.HasValue ? DateOnly.FromDateTime(t.PaidAt.Value) : null,
+                            PaidAmount = t.PaidAmount,
+                            Method = t.Method?.ToString()
+                        }).ToList(),
+                        Page = page,
+                        PageSize = pageSize,
+                        Total = total
+                    }
+                };
+            }
+            catch (Exception)
+            {
+                return ListError(
+                    "An unexpected error occurred while retrieving tuitions",
+                    ResponseStatus.Error);
             }
         }
 
@@ -206,26 +329,29 @@ namespace Application.Services
 
         private static RegisterTuitionPaymentResponseDTO PaymentError(
             string message,
-            string status)
-        {
-            return new RegisterTuitionPaymentResponseDTO
+            string status) => new()
             {
                 Message = message,
                 Status = status,
                 Data = null
             };
-        }
 
         private static GenerateTuitionsResponseDTO Error(
             string message,
-            string status)
-        {
-            return new GenerateTuitionsResponseDTO
+            string status) => new()
             {
                 Message = message,
                 Status = status,
                 Data = null
             };
-        }
+
+        private static TuitionListResponseDTO ListError(
+            string message,
+            string status) => new()
+            {
+                Message = message,
+                Status = status,
+                Data = null
+            };
     }
 }

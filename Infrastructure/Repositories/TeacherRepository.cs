@@ -24,8 +24,10 @@ namespace Infrastructure.Repositories
 
         public async Task<bool> ExistsByEmailAsync(string email)
         {
+            var normalized = email.Trim().ToLower();
+
             return await _context.Teachers
-                .AnyAsync(t => t.Email == email);
+                .AnyAsync(t => t.Email.ToLower() == normalized);
         }
 
         public async Task<bool> ExistsByCpfAsync(string cpf)
@@ -34,11 +36,25 @@ namespace Infrastructure.Repositories
                 .AnyAsync(t => t.Cpf == cpf);
         }
 
+        public async Task<bool> ExistsByEmailExceptIdAsync(string email, Guid id)
+        {
+            var normalized = email.Trim().ToLower();
+
+            return await _context.Teachers
+                .AnyAsync(t => t.Email.ToLower() == normalized && t.Id != id);
+        }
+
+        public async Task<bool> ExistsByCpfExceptIdAsync(string cpf, Guid id)
+        {
+            return await _context.Teachers
+                .AnyAsync(t => t.Cpf == cpf && t.Id != id);
+        }
+
         public async Task<(List<TResult> Items, int Total)> GetAllAsync<TResult>(
-    string? name,
-    int page,
-    int pageSize,
-    Expression<Func<Teacher, TResult>> selector)
+            string? name,
+            int page,
+            int pageSize,
+            Expression<Func<Teacher, TResult>> selector)
         {
             var query = _context.Teachers
                 .AsNoTracking()
@@ -56,6 +72,7 @@ namespace Infrastructure.Repositories
 
             var items = await query
                 .OrderBy(t => t.Name)
+                .ThenBy(t => t.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(selector)
@@ -63,11 +80,21 @@ namespace Infrastructure.Repositories
 
             return (items, total);
         }
+
         public async Task<Teacher?> GetByIdAsync(Guid id)
         {
             return await _context.Teachers
                 .AsNoTracking()
                 .FirstOrDefaultAsync(t => t.Id == id);
+        }
+
+        public async Task<Teacher?> GetByEmailAsync(string email)
+        {
+            var normalized = email.Trim().ToLower();
+
+            return await _context.Teachers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Email.ToLower() == normalized);
         }
 
         public async Task<TResult?> GetByIdAsync<TResult>(
@@ -92,6 +119,43 @@ namespace Infrastructure.Repositories
             return await _context.Lessons.AnyAsync(l =>
                 l.TeacherId == teacherId &&
                 l.Status == LessonStatus.Scheduled);
+        }
+
+        public async Task<bool> HasAnyLessonHistoryAsync(Guid teacherId)
+        {
+            return await _context.Lessons.AnyAsync(l => l.TeacherId == teacherId) ||
+                   await _context.LessonSeries.AnyAsync(s => s.TeacherId == teacherId);
+        }
+
+        public async Task RenameSpecialtyAsync(string oldName, string newName)
+        {
+            var normalizedOld = oldName.Trim().ToLower();
+
+            var teachers = await _context.Teachers
+                .Where(t => t.Specialties.Any(s => s.ToLower() == normalizedOld))
+                .ToListAsync();
+
+            foreach (var teacher in teachers)
+            {
+                var specialties = teacher.Specialties
+                    .Select(s => string.Equals(
+                        s.Trim(),
+                        oldName.Trim(),
+                        StringComparison.OrdinalIgnoreCase)
+                        ? newName
+                        : s)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                teacher.Update(
+                    teacher.Name,
+                    teacher.Email,
+                    teacher.Phone,
+                    teacher.Cpf,
+                    specialties);
+            }
+
+            await _context.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(Teacher teacher)

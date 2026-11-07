@@ -11,6 +11,19 @@
   },
   "Jwt": {
     "SecretKey": "123456789012345678901234567890123",
-    "Issuer": "test"
+    "Issuer": "test",
+    "Audience": "musicschool-app"
+  },
+  "Cors": {
+    "AllowedOrigins": [ "http://localhost:5173" ]
+  },
+  "RateLimiting": {
+    "Login": {
+      "PermitLimit": 10,
+      "WindowSeconds": 60
+    }
+  },
+  "Database": {
+    "MigrateOnStartup": true
   }
 }

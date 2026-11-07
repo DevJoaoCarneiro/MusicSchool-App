@@ -1,8 +1,9 @@
-
+using Application.Common;
 using Application.Interfaces;
 using Application.Request;
 using Application.Response;
 using Domain.Entities;
+using Domain.Exceptions;
 using Domain.Interfaces;
 
 namespace Application.Services
@@ -13,17 +14,20 @@ namespace Application.Services
         private readonly IStudentRepository _studentRepository;
         private readonly IInstrumentRepository _instrumentRepository;
         private readonly ILessonRepository _lessonRepository;
+        private readonly ITeacherRepository _teacherRepository;
 
         public EnrollmentService(
             IEnrollmentRepository enrollmentRepository,
             IStudentRepository studentRepository,
             IInstrumentRepository instrumentRepository,
-            ILessonRepository lessonRepository)
+            ILessonRepository lessonRepository,
+            ITeacherRepository teacherRepository)
         {
             _enrollmentRepository = enrollmentRepository;
             _studentRepository = studentRepository;
             _instrumentRepository = instrumentRepository;
             _lessonRepository = lessonRepository;
+            _teacherRepository = teacherRepository;
         }
 
         public async Task<EnrollmentResponseDTO> CreateEnrollmentAsync(
@@ -35,7 +39,7 @@ namespace Application.Services
                 {
                     return Error(
                         "Request body is required",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
                 if (request.StudentId == Guid.Empty ||
@@ -44,21 +48,21 @@ namespace Application.Services
                 {
                     return Error(
                         "StudentId, InstrumentId and StartDate are required",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
                 if (request.MonthlyFee <= 0)
                 {
                     return Error(
                         "Monthly fee must be greater than zero",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
                 if (request.DueDay < 1 || request.DueDay > 28)
                 {
                     return Error(
                         "Due day must be between 1 and 28",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
                 var student = await _studentRepository
@@ -66,7 +70,7 @@ namespace Application.Services
 
                 if (student == null)
                 {
-                    return Error("Student not found", "not_found");
+                    return Error("Student not found", ResponseStatus.NotFound);
                 }
 
                 var instrument = await _instrumentRepository
@@ -74,7 +78,7 @@ namespace Application.Services
 
                 if (instrument == null)
                 {
-                    return Error("Instrument not found", "not_found");
+                    return Error("Instrument not found", ResponseStatus.NotFound);
                 }
 
                 var alreadyEnrolled = await _enrollmentRepository
@@ -86,14 +90,14 @@ namespace Application.Services
                 {
                     return Error(
                         "Student already has an active enrollment for this instrument",
-                        "conflict");
+                        ResponseStatus.Conflict);
                 }
 
                 var enrollment = new Enrollment(
                     request.StudentId,
                     request.InstrumentId,
-                    request.StartDate.Value,
-                    request.MonthlyFee,
+                    DateTime.SpecifyKind(request.StartDate.Value.Date, DateTimeKind.Unspecified),
+                    Math.Round(request.MonthlyFee, 2, MidpointRounding.AwayFromZero),
                     request.DueDay);
 
                 await _enrollmentRepository.AddAsync(enrollment);
@@ -101,38 +105,27 @@ namespace Application.Services
                 return new EnrollmentResponseDTO
                 {
                     Message = "Enrollment created successfully",
-                    Status = "Success",
-                    Data = new EnrollmentData
-                    {
-                        Id = enrollment.Id,
-                        Student = new StudentEnrollmentData
-                        {
-                            Id = student.Id,
-                            Name = student.Name
-                        },
-                        Instrument = new InstrumentEnrollmentData
-                        {
-                            Id = instrument.Id,
-                            Name = instrument.Name
-                        },
-                        StartDate = enrollment.StartDate,
-                        MonthlyFee = enrollment.MonthlyFee,
-                        DueDay = enrollment.DueDay,
-                        Status = enrollment.Status.ToString()
-                    }
+                    Status = ResponseStatus.Success,
+                    Data = ToData(enrollment, student, instrument)
                 };
+            }
+            catch (ConcurrencyConflictException)
+            {
+                return Error(
+                    "Student already has an active enrollment for this instrument",
+                    ResponseStatus.Conflict);
             }
             catch (Exception)
             {
                 return Error(
                     "An unexpected error occurred while creating the enrollment",
-                    "error");
+                    ResponseStatus.Error);
             }
         }
 
         public async Task<CloseEnrollmentResponseDTO> CloseEnrollmentAsync(
-    Guid id,
-    CloseEnrollmentRequestDTO request)
+            Guid id,
+            CloseEnrollmentRequestDTO request)
         {
             try
             {
@@ -140,28 +133,28 @@ namespace Application.Services
                 {
                     return CloseError(
                         "Invalid enrollment ID",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
                 if (request == null)
                 {
                     return CloseError(
                         "Request body is required",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
                 if (request.EndDate == null)
                 {
                     return CloseError(
                         "End date is required",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
                 if (string.IsNullOrWhiteSpace(request.Reason))
                 {
                     return CloseError(
                         "Reason is required",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
                 var reason = request.Reason.Trim();
@@ -170,14 +163,21 @@ namespace Application.Services
                 {
                     return CloseError(
                         $"Reason cannot exceed {Enrollment.MaxCloseReasonLength} characters",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
                 var enrollment = await _enrollmentRepository.GetByIdAsync(id);
 
                 if (enrollment == null)
                 {
-                    return CloseError("Enrollment not found", "not_found");
+                    return CloseError("Enrollment not found", ResponseStatus.NotFound);
+                }
+
+                if (enrollment.Status == EnrollmentStatus.Closed)
+                {
+                    return CloseError(
+                        "Enrollment is already closed",
+                        ResponseStatus.Conflict);
                 }
 
                 var endDate = request.EndDate.Value
@@ -187,24 +187,22 @@ namespace Application.Services
                 {
                     return CloseError(
                         "End date cannot be before the enrollment start date",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
 
-                if (enrollment.Status == EnrollmentStatus.Closed)
-                {
-                    return CloseError(
-                        "Enrollment is already closed",
-                        "conflict");
-                }
+                var lastValidMoment = endDate.Date.AddDays(1).AddTicks(-1);
+                var blockingFrom = lastValidMoment > DateTime.Now
+                    ? lastValidMoment
+                    : DateTime.Now;
 
                 if (await _lessonRepository
                     .HasFutureScheduledLessonsByEnrollmentAsync(
                         enrollment.Id,
-                        DateTime.Now))
+                        blockingFrom))
                 {
                     return CloseError(
-                        "Enrollment has future scheduled lessons",
-                        "conflict");
+                        "Enrollment has scheduled lessons after the end date",
+                        ResponseStatus.Conflict);
                 }
 
                 enrollment.Close(endDate, reason);
@@ -214,7 +212,7 @@ namespace Application.Services
                 return new CloseEnrollmentResponseDTO
                 {
                     Message = "Enrollment closed successfully",
-                    Status = "Success",
+                    Status = ResponseStatus.Success,
                     Data = new CloseEnrollmentData
                     {
                         Id = enrollment.Id,
@@ -227,33 +225,63 @@ namespace Application.Services
             {
                 return CloseError(
                     "An unexpected error occurred while closing the enrollment",
-                    "error");
+                    ResponseStatus.Error);
             }
         }
 
-        private static CloseEnrollmentResponseDTO CloseError(
-            string message,
-            string status)
+        public async Task<EnrollmentResponseDTO> GetByIdAsync(
+            Guid id,
+            string? teacherEmail)
         {
-            return new CloseEnrollmentResponseDTO
+            if (id == Guid.Empty)
+                return Error("Invalid enrollment ID", ResponseStatus.InvalidArgument);
+
+            try
             {
-                Message = message,
-                Status = status,
-                Data = null
-            };
+                var enrollment = await _enrollmentRepository.GetByIdAsync(id);
+
+                if (enrollment == null)
+                    return Error("Enrollment not found", ResponseStatus.NotFound);
+
+                if (teacherEmail != null)
+                {
+                    var teacher = await _teacherRepository.GetByEmailAsync(teacherEmail);
+
+                    if (teacher == null ||
+                        !await _enrollmentRepository.HasLessonWithTeacherAsync(id, teacher.Id))
+                    {
+                        return Error("Enrollment not found", ResponseStatus.NotFound);
+                    }
+                }
+
+                return new EnrollmentResponseDTO
+                {
+                    Message = "Enrollment retrieved successfully",
+                    Status = ResponseStatus.Success,
+                    Data = ToData(enrollment, enrollment.Student, enrollment.Instrument)
+                };
+            }
+            catch (Exception)
+            {
+                return Error(
+                    "An unexpected error occurred while retrieving the enrollment",
+                    ResponseStatus.Error);
+            }
         }
+
         public async Task<EnrollmentListResponseDTO> GetAllAsync(
             Guid? studentId,
             Guid? instrumentId,
             string? status,
+            string? teacherEmail,
             int page,
             int pageSize)
         {
-            if (page < 1 || pageSize < 1)
+            if (!PaginationLimits.IsValid(page, pageSize))
             {
                 return ListError(
-                    "Page and pageSize must be greater than zero",
-                    "invalid_argument");
+                    PaginationLimits.InvalidMessage,
+                    ResponseStatus.InvalidArgument);
             }
 
             EnrollmentStatus? enrollmentStatus = null;
@@ -272,23 +300,36 @@ namespace Application.Services
                 {
                     return ListError(
                         "Status must be Active or Closed",
-                        "invalid_argument");
+                        ResponseStatus.InvalidArgument);
                 }
             }
 
             try
             {
+                Guid? teacherId = null;
+
+                if (teacherEmail != null)
+                {
+                    var teacher = await _teacherRepository.GetByEmailAsync(teacherEmail);
+
+                    if (teacher == null)
+                        return EmptyList(page, pageSize);
+
+                    teacherId = teacher.Id;
+                }
+
                 var result = await _enrollmentRepository.GetAllAsync(
                     studentId,
                     instrumentId,
                     enrollmentStatus,
+                    teacherId,
                     page,
                     pageSize);
 
                 return new EnrollmentListResponseDTO
                 {
                     Message = "Enrollments retrieved successfully",
-                    Status = "Success",
+                    Status = ResponseStatus.Success,
                     Data = new EnrollmentListData
                     {
                         Items = result.Items.Select(enrollment =>
@@ -310,32 +351,69 @@ namespace Application.Services
             {
                 return ListError(
                     "An unexpected error occurred while retrieving enrollments",
-                    "error");
+                    ResponseStatus.Error);
             }
         }
 
-        private static EnrollmentResponseDTO Error(
-            string message,
-            string status)
+        private static EnrollmentData ToData(
+            Enrollment enrollment,
+            Student student,
+            Instrument instrument) => new()
+            {
+                Id = enrollment.Id,
+                Student = new StudentEnrollmentData
+                {
+                    Id = student.Id,
+                    Name = student.Name
+                },
+                Instrument = new InstrumentEnrollmentData
+                {
+                    Id = instrument.Id,
+                    Name = instrument.Name
+                },
+                StartDate = enrollment.StartDate,
+                MonthlyFee = enrollment.MonthlyFee,
+                DueDay = enrollment.DueDay,
+                Status = enrollment.Status.ToString()
+            };
+
+        private static EnrollmentListResponseDTO EmptyList(int page, int pageSize) => new()
         {
-            return new EnrollmentResponseDTO
+            Message = "Enrollments retrieved successfully",
+            Status = ResponseStatus.Success,
+            Data = new EnrollmentListData
+            {
+                Page = page,
+                PageSize = pageSize,
+                Total = 0
+            }
+        };
+
+        private static CloseEnrollmentResponseDTO CloseError(
+            string message,
+            string status) => new()
             {
                 Message = message,
                 Status = status,
                 Data = null
             };
-        }
+
+        private static EnrollmentResponseDTO Error(
+            string message,
+            string status) => new()
+            {
+                Message = message,
+                Status = status,
+                Data = null
+            };
 
         private static EnrollmentListResponseDTO ListError(
             string message,
-            string status)
-        {
-            return new EnrollmentListResponseDTO
+            string status) => new()
             {
                 Message = message,
                 Status = status,
                 Data = null
             };
-        }
     }
 }

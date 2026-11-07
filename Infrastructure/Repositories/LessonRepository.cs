@@ -1,5 +1,4 @@
-﻿
-using Domain.Entities;
+﻿using Domain.Entities;
 using Domain.Interfaces;
 using Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
@@ -25,11 +24,10 @@ namespace Infrastructure.Repositories
         }
 
         public async Task AddRecurringAsync(
-    LessonSeries series,
-    List<Lesson> lessons)
+            LessonSeries series,
+            List<Lesson> lessons)
         {
             _context.LessonSeries.Add(series);
-
             _context.Lessons.AddRange(lessons);
 
             await _context.SaveChangesAsync();
@@ -42,9 +40,24 @@ namespace Infrastructure.Repositories
                 .FirstOrDefaultAsync(l => l.Id == id);
         }
 
+        public async Task<TResult?> GetByIdAsync<TResult>(
+            Guid id,
+            Expression<Func<Lesson, Teacher, TResult>> selector)
+        {
+            return await _context.Lessons
+                .AsNoTracking()
+                .Where(l => l.Id == id)
+                .Join(
+                    _context.Teachers.AsNoTracking(),
+                    lesson => lesson.TeacherId,
+                    teacher => teacher.Id,
+                    selector)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<bool> HasFutureScheduledLessonsByEnrollmentAsync(
-    Guid enrollmentId,
-    DateTime from)
+            Guid enrollmentId,
+            DateTime from)
         {
             return await _context.Lessons.AnyAsync(l =>
                 l.EnrollmentId == enrollmentId &&
@@ -60,11 +73,17 @@ namespace Infrastructure.Repositories
             return lesson;
         }
 
+        public async Task UpdateRangeAsync(IEnumerable<Lesson> lessons)
+        {
+            _context.Lessons.UpdateRange(lessons);
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<bool> HasTeacherConflictAsync(
-    Guid teacherId,
-    DateTime startsAt,
-    DateTime endsAt,
-    Guid? excludeLessonId = null)
+            Guid teacherId,
+            DateTime startsAt,
+            DateTime endsAt,
+            Guid? excludeLessonId = null)
         {
             return await _context.Lessons.AnyAsync(l =>
                 l.TeacherId == teacherId &&
@@ -75,10 +94,10 @@ namespace Infrastructure.Repositories
         }
 
         public async Task<bool> HasStudentConflictAsync(
-    Guid studentId,
-    DateTime startsAt,
-    DateTime endsAt,
-    Guid? excludeLessonId = null)
+            Guid studentId,
+            DateTime startsAt,
+            DateTime endsAt,
+            Guid? excludeLessonId = null)
         {
             return await _context.Lessons.AnyAsync(l =>
                 l.Enrollment.StudentId == studentId &&
@@ -89,19 +108,48 @@ namespace Infrastructure.Repositories
         }
 
         public async Task<bool> HasRoomConflictAsync(
-    string room,
-    DateTime startsAt,
-    DateTime endsAt,
-    Guid? excludeLessonId = null)
+            string room,
+            DateTime startsAt,
+            DateTime endsAt,
+            Guid? excludeLessonId = null)
         {
+            var normalizedRoom = room.Trim().ToLower();
+
             return await _context.Lessons.AnyAsync(l =>
-                l.Room.ToLower() == room.Trim().ToLower() &&
+                l.Room.ToLower() == normalizedRoom &&
                 l.Status == LessonStatus.Scheduled &&
                 (!excludeLessonId.HasValue || l.Id != excludeLessonId.Value) &&
                 l.StartsAt < endsAt &&
                 l.StartsAt.AddMinutes(l.DurationMinutes) > startsAt);
         }
 
+        public async Task<List<LessonSlot>> GetScheduledSlotsAsync(
+            Guid teacherId,
+            Guid studentId,
+            string room,
+            DateTime from,
+            DateTime to)
+        {
+            var normalizedRoom = room.Trim().ToLower();
+
+            return await _context.Lessons
+                .AsNoTracking()
+                .Where(l =>
+                    l.Status == LessonStatus.Scheduled &&
+                    l.StartsAt < to &&
+                    l.StartsAt.AddMinutes(l.DurationMinutes) > from &&
+                    (l.TeacherId == teacherId ||
+                     l.Enrollment.StudentId == studentId ||
+                     l.Room.ToLower() == normalizedRoom))
+                .Select(l => new LessonSlot(
+                    l.Id,
+                    l.TeacherId,
+                    l.Enrollment.StudentId,
+                    l.Room,
+                    l.StartsAt,
+                    l.DurationMinutes))
+                .ToListAsync();
+        }
 
         public async Task<List<TResult>> GetByDateRangeAsync<TResult>(
             DateTime from,
@@ -133,10 +181,9 @@ namespace Infrastructure.Repositories
                 .ToListAsync();
         }
 
-
         public async Task<Lesson> UpdateWithHistoryAsync(
-    Lesson lesson,
-    LessonChange lessonChange)
+            Lesson lesson,
+            LessonChange lessonChange)
         {
             _context.Lessons.Update(lesson);
             _context.LessonChanges.Add(lessonChange);
@@ -144,6 +191,24 @@ namespace Infrastructure.Repositories
             await _context.SaveChangesAsync();
 
             return lesson;
+        }
+
+        public async Task<bool> SeriesExistsAsync(Guid seriesId)
+        {
+            return await _context.LessonSeries.AnyAsync(s => s.Id == seriesId);
+        }
+
+        public async Task<List<Lesson>> GetFutureScheduledBySeriesAsync(
+            Guid seriesId,
+            DateTime from)
+        {
+            return await _context.Lessons
+                .Where(l =>
+                    l.LessonSeriesId == seriesId &&
+                    l.Status == LessonStatus.Scheduled &&
+                    l.StartsAt > from)
+                .OrderBy(l => l.StartsAt)
+                .ToListAsync();
         }
     }
 }
