@@ -43,6 +43,17 @@ namespace Infrastructure.Repositories
                 .FirstOrDefaultAsync(s => s.Id == id);
         }
 
+        public async Task<TResult?> GetByIdAsync<TResult>(
+            Guid id,
+            Expression<Func<Student, TResult>> selector)
+        {
+            return await _context.Students
+                .AsNoTracking()
+                .Where(s => s.Id == id)
+                .Select(selector)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<(List<TResult> Items, int Total)> GetAllAsync<TResult>(
     string? name,
     int page,
@@ -55,10 +66,10 @@ namespace Infrastructure.Repositories
 
             if (!string.IsNullOrWhiteSpace(name))
             {
-                var search = name.Trim().ToLower();
+                var search = name.Trim();
 
                 query = query.Where(s =>
-                    s.Name.ToLower().Contains(search));
+                    EF.Functions.ILike(s.Name, $"%{search}%"));
             }
 
             var total = await query.CountAsync();

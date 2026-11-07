@@ -20,6 +20,11 @@ namespace Domain.Interfaces
 
         Task<Teacher?> GetByIdAsync(Guid id);
 
+        Task<TResult?> GetByIdAsync<TResult>(
+            Guid id,
+            Expression<Func<Teacher, TResult>> selector
+        );
+
         Task UpdateAsync(Teacher teacher);
 
         Task DeleteAsync(Teacher teacher);
