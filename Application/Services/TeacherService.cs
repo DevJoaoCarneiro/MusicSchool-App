@@ -232,7 +232,17 @@ namespace Application.Services
                 };
             }
 
-            var teacher = await _teacherRepository.GetByIdAsync(id);
+            var teacher = await _teacherRepository.GetByIdAsync(
+                id,
+                teacher => new TeacherData
+                {
+                    Id = teacher.Id,
+                    Name = teacher.Name,
+                    Email = teacher.Email,
+                    Phone = teacher.Phone,
+                    Cpf = teacher.Cpf,
+                    Specialties = teacher.Specialties
+                });
 
             if (teacher == null)
             {
@@ -248,15 +258,7 @@ namespace Application.Services
             {
                 Message = "Teacher found successfully",
                 Status = "Success",
-                Data = new TeacherData
-                {
-                    Id = teacher.Id,
-                    Name = teacher.Name,
-                    Email = teacher.Email,
-                    Phone = teacher.Phone,
-                    Cpf = teacher.Cpf,
-                    Specialties = teacher.Specialties
-                }
+                Data = teacher
             };
         }
 

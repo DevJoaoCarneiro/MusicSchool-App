@@ -208,7 +208,34 @@ namespace Application.Services
         {
             try
             {
-                var student = await _studentRepository.GetByIdAsync(id);
+                var student = await _studentRepository.GetByIdAsync(
+                    id,
+                    student => new StudentData
+                    {
+                        Id = student.Id,
+                        Name = student.Name,
+                        Email = student.Email,
+                        Phone = student.Phone,
+                        Cpf = student.Cpf,
+                        BirthDate = student.BirthDate,
+                        Address = new AddressData
+                        {
+                            Street = student.Address.Street,
+                            Number = student.Address.Number,
+                            City = student.Address.City,
+                            State = student.Address.State,
+                            ZipCode = student.Address.ZipCode
+                        },
+                        Guardian = student.Guardian == null
+                            ? null
+                            : new GuardianData
+                            {
+                                Name = student.Guardian.Name,
+                                Phone = student.Guardian.Phone,
+                                Email = student.Guardian.Email,
+                                Cpf = student.Guardian.Cpf
+                            }
+                    });
 
                 if (student == null)
                 {
@@ -224,34 +251,7 @@ namespace Application.Services
                 {
                     Message = "Student found successfully",
                     Status = "Success",
-                    Data = new StudentData
-                    {
-                        Id = student.Id,
-                        Name = student.Name,
-                        Email = student.Email,
-                        Phone = student.Phone,
-                        Cpf = student.Cpf,
-                        BirthDate = student.BirthDate,
-
-                        Address = new AddressData
-                        {
-                            Street = student.Address.Street,
-                            Number = student.Address.Number,
-                            City = student.Address.City,
-                            State = student.Address.State,
-                            ZipCode = student.Address.ZipCode
-                        },
-
-                        Guardian = student.Guardian == null
-                            ? null
-                            : new GuardianData
-                            {
-                                Name = student.Guardian.Name,
-                                Phone = student.Guardian.Phone,
-                                Email = student.Guardian.Email,
-                                Cpf = student.Guardian.Cpf
-                            }
-                    }
+                    Data = student
                 };
             }
             catch (Exception ex)

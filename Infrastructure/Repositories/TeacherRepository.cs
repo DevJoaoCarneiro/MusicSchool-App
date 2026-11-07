@@ -70,6 +70,17 @@ namespace Infrastructure.Repositories
                 .FirstOrDefaultAsync(t => t.Id == id);
         }
 
+        public async Task<TResult?> GetByIdAsync<TResult>(
+            Guid id,
+            Expression<Func<Teacher, TResult>> selector)
+        {
+            return await _context.Teachers
+                .AsNoTracking()
+                .Where(t => t.Id == id)
+                .Select(selector)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task UpdateAsync(Teacher teacher)
         {
             _context.Teachers.Update(teacher);

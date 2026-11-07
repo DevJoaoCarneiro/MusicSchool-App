@@ -16,6 +16,11 @@ namespace Domain.Interfaces
 
         Task<Student?> GetByIdAsync(Guid id);
 
+        Task<TResult?> GetByIdAsync<TResult>(
+            Guid id,
+            Expression<Func<Student, TResult>> selector
+        );
+
         Task<(List<TResult> Items, int Total)> GetAllAsync<TResult>(
     string? name,
     int page,
