@@ -1,4 +1,4 @@
-﻿
+﻿using Application.Common;
 using Application.Interfaces;
 using Application.Request;
 using Application.Response;
@@ -9,11 +9,18 @@ namespace Application.Services
 {
     public class InstrumentServices : IInstrumentServices
     {
-        private readonly IInstrumentRepository _repository;
+        private const int MaxNameLength = 60;
+        private const int MaxDescriptionLength = 255;
 
-        public InstrumentServices(IInstrumentRepository repository)
+        private readonly IInstrumentRepository _repository;
+        private readonly ITeacherRepository _teacherRepository;
+
+        public InstrumentServices(
+            IInstrumentRepository repository,
+            ITeacherRepository teacherRepository)
         {
             _repository = repository;
+            _teacherRepository = teacherRepository;
         }
 
         public async Task<InstrumentResponseDTO> CreateAsync(
@@ -21,23 +28,10 @@ namespace Application.Services
         {
             try
             {
-                if (request == null ||
-                    string.IsNullOrWhiteSpace(request.Name))
-                {
-                    return Result(
-                        "Instrument name is required",
-                        "BadRequest");
-                }
+                var validation = Validate(request, out var name, out var description);
 
-                var name = request.Name.Trim();
-                var description = request.Description?.Trim() ?? string.Empty;
-
-                if (name.Length > 60)
-                {
-                    return Result(
-                        "Instrument name cannot exceed 60 characters",
-                        "BadRequest");
-                }
+                if (validation != null)
+                    return validation;
 
                 var existing = await _repository.GetByNameAsync(name);
 
@@ -45,7 +39,7 @@ namespace Application.Services
                 {
                     return Result(
                         "Instrument name already exists",
-                        "Conflict");
+                        ResponseStatus.Conflict);
                 }
 
                 var instrument = new Instrument(name, description);
@@ -54,14 +48,14 @@ namespace Application.Services
 
                 return Result(
                     "Instrument created successfully",
-                    "Success",
+                    ResponseStatus.Success,
                     ToData(instrument));
             }
             catch (Exception)
             {
                 return Result(
                     "An unexpected error occurred",
-                    "Error");
+                    ResponseStatus.Error);
             }
         }
 
@@ -75,14 +69,14 @@ namespace Application.Services
 
                 return Result(
                     "Instruments retrieved successfully",
-                    "Success",
+                    ResponseStatus.Success,
                     data);
             }
             catch (Exception)
             {
                 return Result(
                     "An unexpected error occurred",
-                    "Error");
+                    ResponseStatus.Error);
             }
         }
 
@@ -96,19 +90,19 @@ namespace Application.Services
                 {
                     return Result(
                         "Instrument not found",
-                        "NotFound");
+                        ResponseStatus.NotFound);
                 }
 
                 return Result(
                     "Instrument retrieved successfully",
-                    "Success",
+                    ResponseStatus.Success,
                     ToData(instrument));
             }
             catch (Exception)
             {
                 return Result(
                     "An unexpected error occurred",
-                    "Error");
+                    ResponseStatus.Error);
             }
         }
 
@@ -118,23 +112,10 @@ namespace Application.Services
         {
             try
             {
-                if (request == null ||
-                    string.IsNullOrWhiteSpace(request.Name))
-                {
-                    return Result(
-                        "Instrument name is required",
-                        "BadRequest");
-                }
+                var validation = Validate(request, out var name, out var description);
 
-                var name = request.Name.Trim();
-                var description = request.Description?.Trim() ?? string.Empty;
-
-                if (name.Length > 60)
-                {
-                    return Result(
-                        "Instrument name cannot exceed 60 characters",
-                        "BadRequest");
-                }
+                if (validation != null)
+                    return validation;
 
                 var instrument = await _repository.GetByIdAsync(id);
 
@@ -142,7 +123,7 @@ namespace Application.Services
                 {
                     return Result(
                         "Instrument not found",
-                        "NotFound");
+                        ResponseStatus.NotFound);
                 }
 
                 var existing = await _repository.GetByNameAsync(name);
@@ -151,23 +132,30 @@ namespace Application.Services
                 {
                     return Result(
                         "Instrument name already exists",
-                        "Conflict");
+                        ResponseStatus.Conflict);
                 }
+
+                var oldName = instrument.Name;
 
                 instrument.Update(name, description);
 
                 await _repository.UpdateAsync(instrument);
 
+                if (!string.Equals(oldName, name, StringComparison.Ordinal))
+                {
+                    await _teacherRepository.RenameSpecialtyAsync(oldName, name);
+                }
+
                 return Result(
                     "Instrument updated successfully",
-                    "Success",
+                    ResponseStatus.Success,
                     ToData(instrument));
             }
             catch (Exception)
             {
                 return Result(
                     "An unexpected error occurred",
-                    "Error");
+                    ResponseStatus.Error);
             }
         }
 
@@ -181,14 +169,21 @@ namespace Application.Services
                 {
                     return Result(
                         "Instrument not found",
-                        "NotFound");
+                        ResponseStatus.NotFound);
                 }
 
                 if (await _repository.HasActiveEnrollmentsAsync(id))
                 {
                     return Result(
                         "Instrument has active enrollments",
-                        "Conflict");
+                        ResponseStatus.Conflict);
+                }
+
+                if (await _repository.HasAnyEnrollmentAsync(id))
+                {
+                    return Result(
+                        "Instrument has enrollment history and cannot be deleted",
+                        ResponseStatus.Conflict);
                 }
 
                 var deleted = await _repository.DeleteAsync(instrument);
@@ -197,19 +192,54 @@ namespace Application.Services
                 {
                     return Result(
                         "Instrument could not be deleted",
-                        "Error");
+                        ResponseStatus.Error);
                 }
 
                 return Result(
                     "Instrument deleted successfully",
-                    "Success");
+                    ResponseStatus.Success);
             }
             catch (Exception)
             {
                 return Result(
                     "An unexpected error occurred",
-                    "Error");
+                    ResponseStatus.Error);
             }
+        }
+
+        private static InstrumentResponseDTO? Validate(
+            InstrumentRequestDTO? request,
+            out string name,
+            out string description)
+        {
+            name = string.Empty;
+            description = string.Empty;
+
+            if (request == null || string.IsNullOrWhiteSpace(request.Name))
+            {
+                return Result(
+                    "Instrument name is required",
+                    ResponseStatus.InvalidArgument);
+            }
+
+            name = request.Name.Trim();
+            description = request.Description?.Trim() ?? string.Empty;
+
+            if (name.Length > MaxNameLength)
+            {
+                return Result(
+                    $"Instrument name cannot exceed {MaxNameLength} characters",
+                    ResponseStatus.InvalidArgument);
+            }
+
+            if (description.Length > MaxDescriptionLength)
+            {
+                return Result(
+                    $"Instrument description cannot exceed {MaxDescriptionLength} characters",
+                    ResponseStatus.InvalidArgument);
+            }
+
+            return null;
         }
 
         private static InstrumentData ToData(Instrument instrument)

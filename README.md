@@ -2,7 +2,7 @@
 
 API REST em **.NET** para gestão de uma escola de música, estruturada com **Domain-Driven Design (DDD)** em camadas e
 princípios **SOLID**. Usa **PostgreSQL** via **Entity Framework Core** (com Migrations) e traz um fluxo completo
-(`Api → Application → Domain → Infrastructure`) de ponta a ponta — **`POST /api/user`** — como referência para
+(`Api → Application → Domain → Infrastructure`) de ponta a ponta — **`POST /api/users`** — como referência para
 implementar novas features seguindo o mesmo padrão.
 
 ---
@@ -42,7 +42,7 @@ de dependência em `Api/Program.cs`, seguindo o princípio de inversão de depen
 
 ## 🧩 Endpoint de usuário
 
-`UserController` (`Api/Controllers/UserController.cs`) implementa `POST /api/user` e serve como referência de como uma
+`UserController` (`Api/Controllers/UserController.cs`) implementa `POST /api/users` e serve como referência de como uma
 feature nova deve atravessar as camadas: DTO de entrada → `IUserServices` (Application) → entidade `User` (Domain) →
 `IUserRepository` (Domain) → `UserRepository` (Infrastructure, via EF Core). Use-o como modelo ao adicionar novos recursos.
 

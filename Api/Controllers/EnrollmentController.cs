@@ -1,22 +1,17 @@
-
-using System;
-using System.Threading.Tasks;
 using Application.Interfaces;
 using Application.Request;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Application.Response;
 
 namespace Api.Controllers
 {
-    [ApiController]
     [Route("api/enrollments")]
-    public class EnrollmentController : ControllerBase
+    [Authorize]
+    public class EnrollmentController : ApiControllerBase
     {
         private readonly IEnrollmentServices _enrollmentServices;
 
-        public EnrollmentController(
-            IEnrollmentServices enrollmentServices)
+        public EnrollmentController(IEnrollmentServices enrollmentServices)
         {
             _enrollmentServices = enrollmentServices;
         }
@@ -26,55 +21,25 @@ namespace Api.Controllers
         public async Task<IActionResult> CreateEnrollment(
             [FromBody] EnrollmentRequestDTO request)
         {
-            var response =
-                await _enrollmentServices.CreateEnrollmentAsync(request);
-
-            return response.Status switch
-            {
-                "Success" => Ok(response),
-                "invalid_argument" => BadRequest(response),
-                "not_found" => NotFound(response),
-                "conflict" => Conflict(response),
-                _ => StatusCode(500, response)
-            };
+            var response = await _enrollmentServices.CreateEnrollmentAsync(request);
+            return FromStatus(response.Status, response);
         }
 
         [HttpPatch("{id}/close")]
         [Authorize(Roles = "Admin,Secretary")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status409Conflict)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CloseEnrollment(
             string id,
             [FromBody] CloseEnrollmentRequestDTO request)
         {
             if (!Guid.TryParse(id, out var enrollmentId))
-            {
-                return BadRequest(new CloseEnrollmentResponseDTO
-                {
-                    Message = "Invalid enrollment ID",
-                    Status = "invalid_argument",
-                    Data = null
-                });
-            }
+                return InvalidId("enrollment");
 
-            var response = await _enrollmentServices
-                .CloseEnrollmentAsync(enrollmentId, request);
-
-            return response.Status switch
-            {
-                "Success" => Ok(response),
-                "invalid_argument" => BadRequest(response),
-                "not_found" => NotFound(response),
-                "conflict" => Conflict(response),
-                _ => StatusCode(500, response)
-            };
+            var response = await _enrollmentServices.CloseEnrollmentAsync(enrollmentId, request);
+            return FromStatus(response.Status, response);
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin,Teacher")]
+        [Authorize(Roles = "Admin,Secretary,Teacher")]
         public async Task<IActionResult> GetAll(
             [FromQuery] Guid? studentId,
             [FromQuery] Guid? instrumentId,
@@ -86,15 +51,22 @@ namespace Api.Controllers
                 studentId,
                 instrumentId,
                 status,
+                TeacherScopeEmail,
                 page,
                 pageSize);
 
-            return response.Status switch
-            {
-                "Success" => Ok(response),
-                "invalid_argument" => BadRequest(response),
-                _ => StatusCode(500, response)
-            };
+            return FromStatus(response.Status, response);
+        }
+
+        [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Secretary,Teacher")]
+        public async Task<IActionResult> GetById(string id)
+        {
+            if (!Guid.TryParse(id, out var enrollmentId))
+                return InvalidId("enrollment");
+
+            var response = await _enrollmentServices.GetByIdAsync(enrollmentId, TeacherScopeEmail);
+            return FromStatus(response.Status, response);
         }
     }
 }

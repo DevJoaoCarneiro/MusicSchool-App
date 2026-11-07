@@ -1,55 +1,64 @@
-﻿
-using Application.DTOs;
+﻿using System.Globalization;
+using Application.Common;
 using Application.Interfaces;
+using Application.Request;
+using Application.Response;
 using Domain.Entities;
+using Domain.Exceptions;
 using Domain.Interfaces;
 
 namespace Application.Services
 {
     public class LessonService : ILessonServices
     {
+        private const int MinDurationMinutes = 30;
+        private const int MaxDurationMinutes = 120;
+        private const int MaxRoomLength = 60;
+        private const int MinReasonLength = 5;
+        private const int MaxReasonLength = 500;
+        private const int MaxRangeDays = 42;
+        private const int MaxRecurringMonths = 6;
+
         private readonly ILessonRepository _lessonRepository;
         private readonly IEnrollmentRepository _enrollmentRepository;
         private readonly ITeacherRepository _teacherRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
         public LessonService(
             ILessonRepository lessonRepository,
             IEnrollmentRepository enrollmentRepository,
-            ITeacherRepository teacherRepository)
+            ITeacherRepository teacherRepository,
+            IUnitOfWork unitOfWork)
         {
             _lessonRepository = lessonRepository;
             _enrollmentRepository = enrollmentRepository;
             _teacherRepository = teacherRepository;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<LessonResponseDTO> CreateAsync(
             LessonRequestDTO request)
         {
             if (request == null)
-                return Error("Request is required", "BadRequest");
+                return Error("Request is required", ResponseStatus.InvalidArgument);
 
             if (request.EnrollmentId == Guid.Empty)
-                return Error("Enrollment is required", "BadRequest");
+                return Error("Enrollment is required", ResponseStatus.InvalidArgument);
 
             if (request.TeacherId == Guid.Empty)
-                return Error("Teacher is required", "BadRequest");
+                return Error("Teacher is required", ResponseStatus.InvalidArgument);
 
-            if (request.StartsAt <= DateTime.Now)
-                return Error("Lesson date must be in the future", "BadRequest");
+            var startsAt = Normalizer.LocalDateTime(request.StartsAt);
 
-            if (request.DurationMinutes < 30 ||
-                request.DurationMinutes > 120)
-            {
-                return Error(
-                    "Lesson duration must be between 30 and 120 minutes",
-                    "BadRequest");
-            }
+            if (startsAt <= DateTime.Now)
+                return Error("Lesson date must be in the future", ResponseStatus.InvalidArgument);
 
-            if (string.IsNullOrWhiteSpace(request.Room))
-                return Error("Room is required", "BadRequest");
+            var basicValidation = ValidateDurationAndRoom(request.DurationMinutes, request.Room);
 
-            if (request.Room.Trim().Length > 60)
-                return Error("Room cannot exceed 60 characters", "BadRequest");
+            if (basicValidation != null)
+                return basicValidation;
+
+            var room = request.Room.Trim();
 
             try
             {
@@ -57,156 +66,131 @@ namespace Application.Services
                     .GetByIdAsync(request.EnrollmentId);
 
                 if (enrollment == null)
-                    return Error("Enrollment not found", "NotFound");
+                    return Error("Enrollment not found", ResponseStatus.NotFound);
 
                 if (enrollment.Status != EnrollmentStatus.Active)
-                    return Error("Enrollment is inactive", "Conflict");
-
-                var endsAt = request.StartsAt.AddMinutes(
-                    request.DurationMinutes);
+                    return Error("Enrollment is inactive", ResponseStatus.Conflict);
 
                 var teacher = await _teacherRepository
                     .GetByIdAsync(request.TeacherId);
 
                 if (teacher == null)
-                    return Error("Teacher not found", "NotFound");
+                    return Error("Teacher not found", ResponseStatus.NotFound);
 
-                var instrumentName = enrollment.Instrument.Name;
-
-                var teachesInstrument = teacher.Specialties.Any(s =>
-                    !string.IsNullOrWhiteSpace(s) &&
-                    string.Equals(
-                        s.Trim(),
-                        instrumentName.Trim(),
-                        StringComparison.OrdinalIgnoreCase));
-
-                if (!teachesInstrument)
+                if (!TeachesInstrument(teacher, enrollment.Instrument.Name))
                 {
                     return Error(
                         "Teacher does not teach the instrument of this enrollment",
-                        "BadRequest");
+                        ResponseStatus.InvalidArgument);
                 }
 
-                if (await _lessonRepository.HasTeacherConflictAsync(
-                    request.TeacherId, request.StartsAt, endsAt))
+                var endsAt = startsAt.AddMinutes(request.DurationMinutes);
+
+                return await _unitOfWork.ExecuteSerializableAsync(async () =>
                 {
-                    return Error(
-                        "Conflict: teacher - Teacher already has a lesson at this time",
-                        "Conflict");
-                }
+                    var conflict = await CheckConflictsAsync(
+                        teacher.Id,
+                        enrollment.StudentId,
+                        room,
+                        startsAt,
+                        endsAt);
 
-                if (await _lessonRepository.HasStudentConflictAsync(
-                    enrollment.StudentId, request.StartsAt, endsAt))
-                {
-                    return Error(
-                        "Conflict: student - Student already has a lesson at this time",
-                        "Conflict");
-                }
+                    if (conflict != null)
+                        return conflict;
 
-                if (await _lessonRepository.HasRoomConflictAsync(
-                    request.Room, request.StartsAt, endsAt))
-                {
-                    return Error(
-                        "Conflict: room - Room is already booked at this time",
-                        "Conflict");
-                }
+                    var lesson = new Lesson(
+                        enrollment,
+                        teacher.Id,
+                        startsAt,
+                        request.DurationMinutes,
+                        room);
 
-                var lesson = new Lesson(
-                    enrollment,
-                    request.TeacherId,
-                    request.StartsAt,
-                    request.DurationMinutes,
-                    request.Room);
+                    await _lessonRepository.AddAsync(lesson);
 
-                await _lessonRepository.AddAsync(lesson);
-
-                return new LessonResponseDTO
-                {
-                    Message = "Lesson scheduled successfully",
-                    Status = "Success",
-                    Data = new
+                    return new LessonResponseDTO
                     {
-                        id = lesson.Id,
-                        student = new
+                        Message = "Lesson scheduled successfully",
+                        Status = ResponseStatus.Success,
+                        Data = new
                         {
-                            id = enrollment.Student.Id,
-                            name = enrollment.Student.Name
-                        },
-                        teacher = new
-                        {
-                            id = teacher.Id,
-                            name = teacher.Name
-                        },
-                        instrument = enrollment.Instrument.Name,
-                        startsAt = lesson.StartsAt,
-                        endsAt = lesson.EndsAt,
-                        room = lesson.Room,
-                        status = lesson.Status.ToString()
-                    }
-                };
+                            id = lesson.Id,
+                            student = new
+                            {
+                                id = enrollment.Student.Id,
+                                name = enrollment.Student.Name
+                            },
+                            teacher = new
+                            {
+                                id = teacher.Id,
+                                name = teacher.Name
+                            },
+                            instrument = enrollment.Instrument.Name,
+                            startsAt = lesson.StartsAt,
+                            endsAt = lesson.EndsAt,
+                            room = lesson.Room,
+                            status = lesson.Status.ToString()
+                        }
+                    };
+                });
+            }
+            catch (ConcurrencyConflictException ex)
+            {
+                return Error(ex.Message, ResponseStatus.Conflict);
             }
             catch (ArgumentException ex)
             {
-                return Error(ex.Message, "BadRequest");
+                return Error(ex.Message, ResponseStatus.InvalidArgument);
             }
             catch (Exception)
             {
-                return Error("An unexpected error occurred", "Error");
+                return Error("An unexpected error occurred", ResponseStatus.Error);
             }
         }
-
 
         public async Task<LessonResponseDTO> CreateRecurringAsync(
             CreateRecurringLessonDTO request)
         {
             if (request == null)
-                return Error("Request is required", "BadRequest");
+                return Error("Request is required", ResponseStatus.InvalidArgument);
 
             if (request.EnrollmentId == Guid.Empty)
-                return Error("Enrollment is required", "BadRequest");
+                return Error("Enrollment is required", ResponseStatus.InvalidArgument);
 
             if (request.TeacherId == Guid.Empty)
-                return Error("Teacher is required", "BadRequest");
+                return Error("Teacher is required", ResponseStatus.InvalidArgument);
 
-            if (!Enum.TryParse<DayOfWeek>(
-                request.Weekday,
-                true,
-                out var weekday))
+            if (string.IsNullOrWhiteSpace(request.Weekday) ||
+                int.TryParse(request.Weekday, out _) ||
+                !Enum.TryParse<DayOfWeek>(request.Weekday.Trim(), true, out var weekday) ||
+                !Enum.IsDefined(weekday))
             {
-                return Error("Invalid weekday", "BadRequest");
+                return Error("Invalid weekday", ResponseStatus.InvalidArgument);
             }
 
             if (!TimeSpan.TryParseExact(
                 request.Time,
                 @"hh\:mm",
-                System.Globalization.CultureInfo.InvariantCulture,
+                CultureInfo.InvariantCulture,
                 out var lessonTime))
             {
-                return Error("Invalid time. Use HH:mm format", "BadRequest");
+                return Error("Invalid time. Use HH:mm format", ResponseStatus.InvalidArgument);
             }
 
-            if (request.DurationMinutes < 30 ||
-                request.DurationMinutes > 120)
-            {
-                return Error(
-                    "Lesson duration must be between 30 and 120 minutes",
-                    "BadRequest");
-            }
+            var basicValidation = ValidateDurationAndRoom(request.DurationMinutes, request.Room);
 
-            if (string.IsNullOrWhiteSpace(request.Room))
-                return Error("Room is required", "BadRequest");
+            if (basicValidation != null)
+                return basicValidation;
 
-            if (request.Room.Trim().Length > 60)
-                return Error("Room cannot exceed 60 characters", "BadRequest");
+            var room = request.Room.Trim();
 
-            var startDate = request.StartDate.Date;
-            var endDate = request.EndDate.Date;
+            var startDate = Normalizer.LocalDateTime(request.StartDate).Date;
+            var endDate = Normalizer.LocalDateTime(request.EndDate).Date;
 
             if (endDate < startDate)
-                return Error("End date must be on or after start date", "BadRequest");
+                return Error("End date must be on or after start date", ResponseStatus.InvalidArgument);
 
-            if (endDate > startDate.AddMonths(6))
-                return Error("Recurring period cannot exceed six months", "BadRequest");
+            if (endDate > startDate.AddMonths(MaxRecurringMonths))
+                return Error("Recurring period cannot exceed six months", ResponseStatus.InvalidArgument);
 
             try
             {
@@ -214,190 +198,197 @@ namespace Application.Services
                     .GetByIdAsync(request.EnrollmentId);
 
                 if (enrollment == null)
-                    return Error("Enrollment not found", "NotFound");
+                    return Error("Enrollment not found", ResponseStatus.NotFound);
 
                 if (enrollment.Status != EnrollmentStatus.Active)
-                    return Error("Enrollment is inactive", "Conflict");
+                    return Error("Enrollment is inactive", ResponseStatus.Conflict);
 
                 var teacher = await _teacherRepository
                     .GetByIdAsync(request.TeacherId);
 
                 if (teacher == null)
-                    return Error("Teacher not found", "NotFound");
+                    return Error("Teacher not found", ResponseStatus.NotFound);
 
-                var instrumentName = enrollment.Instrument.Name;
-
-                var teachesInstrument = teacher.Specialties.Any(s =>
-                    !string.IsNullOrWhiteSpace(s) &&
-                    string.Equals(
-                        s.Trim(),
-                        instrumentName.Trim(),
-                        StringComparison.OrdinalIgnoreCase));
-
-                if (!teachesInstrument)
+                if (!TeachesInstrument(teacher, enrollment.Instrument.Name))
                 {
                     return Error(
                         "Teacher does not teach the instrument of this enrollment",
-                        "BadRequest");
+                        ResponseStatus.InvalidArgument);
                 }
 
-                // Encontra a primeira data que corresponde ao dia da semana.
                 var firstDate = startDate.AddDays(
                     ((int)weekday - (int)startDate.DayOfWeek + 7) % 7);
 
-                var dates = new List<DateTime>();
+                var slots = new List<(DateTime StartsAt, DateTime EndsAt)>();
 
-                for (var date = firstDate;
-                     date <= endDate;
-                     date = date.AddDays(7))
-                {
-                    dates.Add(date);
-                }
-
-                if (dates.Count == 0)
-                    return Error(
-                        "No lessons found in the selected period",
-                        "BadRequest");
-
-                var lessons = new List<Lesson>();
-                var conflictingDates = new List<string>();
-
-                foreach (var date in dates)
+                for (var date = firstDate; date <= endDate; date = date.AddDays(7))
                 {
                     var startsAt = date.Add(lessonTime);
-                    var endsAt = startsAt.AddMinutes(request.DurationMinutes);
-
-                    if (startsAt <= DateTime.Now)
-                    {
-                        return Error(
-                            $"Lesson date {date:yyyy-MM-dd} must be in the future",
-                            "BadRequest");
-                    }
-
-                    var teacherConflict =
-                        await _lessonRepository.HasTeacherConflictAsync(
-                            request.TeacherId, startsAt, endsAt);
-
-                    var studentConflict =
-                        await _lessonRepository.HasStudentConflictAsync(
-                            enrollment.StudentId, startsAt, endsAt);
-
-                    var roomConflict =
-                        await _lessonRepository.HasRoomConflictAsync(
-                            request.Room, startsAt, endsAt);
-
-                    if (teacherConflict || studentConflict || roomConflict)
-                    {
-                        conflictingDates.Add(date.ToString("yyyy-MM-dd"));
-                        continue;
-                    }
-
-                    var lesson = new Lesson(
-                        enrollment,
-                        request.TeacherId,
-                        startsAt,
-                        request.DurationMinutes,
-                        request.Room);
-
-                    lessons.Add(lesson);
+                    slots.Add((startsAt, startsAt.AddMinutes(request.DurationMinutes)));
                 }
 
-                // Nenhuma aula será salva se houver qualquer conflito.
-                if (conflictingDates.Count > 0)
+                if (slots.Count == 0)
                 {
+                    return Error(
+                        "No lessons found in the selected period",
+                        ResponseStatus.InvalidArgument);
+                }
+
+                var past = slots.FirstOrDefault(s => s.StartsAt <= DateTime.Now);
+
+                if (past != default)
+                {
+                    return Error(
+                        $"Lesson date {past.StartsAt:yyyy-MM-dd} must be in the future",
+                        ResponseStatus.InvalidArgument);
+                }
+
+                return await _unitOfWork.ExecuteSerializableAsync(async () =>
+                {
+                    var existing = await _lessonRepository.GetScheduledSlotsAsync(
+                        teacher.Id,
+                        enrollment.StudentId,
+                        room,
+                        slots[0].StartsAt,
+                        slots[^1].EndsAt);
+
+                    var conflictingDates = slots
+                        .Where(slot => existing.Any(e =>
+                            e.Overlaps(slot.StartsAt, slot.EndsAt) &&
+                            (e.TeacherId == teacher.Id ||
+                             e.StudentId == enrollment.StudentId ||
+                             string.Equals(e.Room.Trim(), room, StringComparison.OrdinalIgnoreCase))))
+                        .Select(slot => slot.StartsAt.ToString("yyyy-MM-dd"))
+                        .ToList();
+
+                    if (conflictingDates.Count > 0)
+                    {
+                        return new LessonResponseDTO
+                        {
+                            Message = "Conflicts found in recurring lessons",
+                            Status = ResponseStatus.Conflict,
+                            Data = new { conflictingDates }
+                        };
+                    }
+
+                    var series = new LessonSeries(
+                        enrollment.Id,
+                        teacher.Id,
+                        weekday,
+                        lessonTime,
+                        startDate,
+                        endDate,
+                        request.DurationMinutes,
+                        room);
+
+                    var lessons = slots
+                        .Select(slot =>
+                        {
+                            var lesson = new Lesson(
+                                enrollment,
+                                teacher.Id,
+                                slot.StartsAt,
+                                request.DurationMinutes,
+                                room);
+
+                            lesson.AssociateWithSeries(series);
+                            return lesson;
+                        })
+                        .ToList();
+
+                    await _lessonRepository.AddRecurringAsync(series, lessons);
+
                     return new LessonResponseDTO
                     {
-                        Message = "Conflicts found in recurring lessons",
-                        Status = "Conflict",
+                        Message = "Recurring lessons scheduled successfully",
+                        Status = ResponseStatus.Success,
                         Data = new
                         {
-                            conflictingDates
+                            seriesId = series.Id,
+                            lessonsCreated = lessons.Count,
+                            firstLesson = lessons[0].StartsAt,
+                            lastLesson = lessons[^1].StartsAt
                         }
                     };
-                }
-
-                var series = new LessonSeries(
-                    enrollment.Id,
-                    teacher.Id,
-                    weekday,
-                    lessonTime,
-                    startDate,
-                    endDate,
-                    request.DurationMinutes,
-                    request.Room);
-
-                foreach (var lesson in lessons)
-                {
-                    lesson.AssociateWithSeries(series);
-                }
-
-                await _lessonRepository.AddRecurringAsync(series, lessons);
-
-                return new LessonResponseDTO
-                {
-                    Message = "Recurring lessons scheduled successfully",
-                    Status = "Success",
-                    Data = new
-                    {
-                        seriesId = series.Id,
-                        lessonsCreated = lessons.Count,
-                        firstLesson = lessons.First().StartsAt,
-                        lastLesson = lessons.Last().StartsAt
-                    }
-                };
+                });
+            }
+            catch (ConcurrencyConflictException ex)
+            {
+                return Error(ex.Message, ResponseStatus.Conflict);
             }
             catch (ArgumentException ex)
             {
-                return Error(ex.Message, "BadRequest");
+                return Error(ex.Message, ResponseStatus.InvalidArgument);
             }
             catch (Exception)
             {
-                return Error("An unexpected error occurred", "Error");
+                return Error("An unexpected error occurred", ResponseStatus.Error);
             }
         }
-
-
 
         public async Task<LessonResponseDTO> GetByDateRangeAsync(
             DateTime? from,
             DateTime? to,
             Guid? teacherId,
-            Guid? studentId)
+            Guid? studentId,
+            string? teacherEmail)
         {
             if (!from.HasValue || !to.HasValue)
             {
                 return Error(
                     "The from and to dates are required",
-                    "BadRequest");
+                    ResponseStatus.InvalidArgument);
             }
 
-            var startDate = from.Value.Date;
-            var endDate = to.Value.Date;
+            var startDate = Normalizer.LocalDateTime(from.Value).Date;
+            var endDate = Normalizer.LocalDateTime(to.Value).Date;
 
             if (endDate < startDate)
             {
                 return Error(
                     "The to date must be on or after the from date",
-                    "BadRequest");
+                    ResponseStatus.InvalidArgument);
             }
 
-            var numberOfDays = (endDate - startDate).TotalDays + 1;
-
-            if (numberOfDays > 42)
+            if ((endDate - startDate).TotalDays + 1 > MaxRangeDays)
             {
                 return Error(
-                    "The date range cannot exceed 42 days",
-                    "BadRequest");
+                    $"The date range cannot exceed {MaxRangeDays} days",
+                    ResponseStatus.InvalidArgument);
             }
 
             if (teacherId == Guid.Empty)
-                return Error("Invalid teacherId", "BadRequest");
+                return Error("Invalid teacherId", ResponseStatus.InvalidArgument);
 
             if (studentId == Guid.Empty)
-                return Error("Invalid studentId", "BadRequest");
+                return Error("Invalid studentId", ResponseStatus.InvalidArgument);
 
             try
             {
+                if (teacherEmail != null)
+                {
+                    var callerTeacher = await _teacherRepository.GetByEmailAsync(teacherEmail);
+
+                    if (callerTeacher == null)
+                    {
+                        return new LessonResponseDTO
+                        {
+                            Message = "Lessons retrieved successfully",
+                            Status = ResponseStatus.Success,
+                            Data = Array.Empty<object>()
+                        };
+                    }
+
+                    if (teacherId.HasValue && teacherId.Value != callerTeacher.Id)
+                    {
+                        return Error(
+                            "Teachers can only view their own lessons",
+                            ResponseStatus.Forbidden);
+                    }
+
+                    teacherId = callerTeacher.Id;
+                }
+
                 var lessons = await _lessonRepository.GetByDateRangeAsync(
                     startDate,
                     endDate,
@@ -406,12 +397,12 @@ namespace Application.Services
                     (lesson, teacher) => new
                     {
                         id = lesson.Id,
+                        seriesId = lesson.LessonSeriesId,
                         studentName = lesson.Enrollment.Student.Name,
                         teacherName = teacher.Name,
                         instrument = lesson.Enrollment.Instrument.Name,
                         startsAt = lesson.StartsAt,
-                        endsAt = lesson.StartsAt.AddMinutes(
-                            lesson.DurationMinutes),
+                        durationMinutes = lesson.DurationMinutes,
                         room = lesson.Room,
                         status = lesson.Status
                     });
@@ -419,11 +410,12 @@ namespace Application.Services
                 var results = lessons.Select(lesson => new
                 {
                     lesson.id,
+                    lesson.seriesId,
                     lesson.studentName,
                     lesson.teacherName,
                     lesson.instrument,
                     lesson.startsAt,
-                    lesson.endsAt,
+                    endsAt = lesson.startsAt.AddMinutes(lesson.durationMinutes),
                     lesson.room,
                     status = lesson.status.ToString()
                 }).ToList();
@@ -431,42 +423,101 @@ namespace Application.Services
                 return new LessonResponseDTO
                 {
                     Message = "Lessons retrieved successfully",
-                    Status = "Success",
+                    Status = ResponseStatus.Success,
                     Data = results
                 };
             }
             catch (Exception)
             {
-                return Error("An unexpected error occurred", "Error");
+                return Error("An unexpected error occurred", ResponseStatus.Error);
             }
         }
 
+        public async Task<LessonResponseDTO> GetByIdAsync(
+            Guid id,
+            string? teacherEmail)
+        {
+            if (id == Guid.Empty)
+                return Error("Invalid lesson ID", ResponseStatus.InvalidArgument);
 
+            try
+            {
+                var lesson = await _lessonRepository.GetByIdAsync(
+                    id,
+                    (lesson, teacher) => new
+                    {
+                        id = lesson.Id,
+                        seriesId = lesson.LessonSeriesId,
+                        enrollmentId = lesson.EnrollmentId,
+                        teacherId = teacher.Id,
+                        teacherEmail = teacher.Email,
+                        teacherName = teacher.Name,
+                        studentId = lesson.Enrollment.StudentId,
+                        studentName = lesson.Enrollment.Student.Name,
+                        instrument = lesson.Enrollment.Instrument.Name,
+                        startsAt = lesson.StartsAt,
+                        durationMinutes = lesson.DurationMinutes,
+                        room = lesson.Room,
+                        status = lesson.Status,
+                        reason = lesson.Reason,
+                        cancelledAt = lesson.CancelledAt
+                    });
+
+                if (lesson == null ||
+                    (teacherEmail != null &&
+                     !string.Equals(lesson.teacherEmail, teacherEmail, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return Error("Lesson not found", ResponseStatus.NotFound);
+                }
+
+                return new LessonResponseDTO
+                {
+                    Message = "Lesson retrieved successfully",
+                    Status = ResponseStatus.Success,
+                    Data = new
+                    {
+                        lesson.id,
+                        lesson.seriesId,
+                        lesson.enrollmentId,
+                        teacher = new { id = lesson.teacherId, name = lesson.teacherName },
+                        student = new { id = lesson.studentId, name = lesson.studentName },
+                        lesson.instrument,
+                        lesson.startsAt,
+                        endsAt = lesson.startsAt.AddMinutes(lesson.durationMinutes),
+                        lesson.room,
+                        status = lesson.status.ToString(),
+                        lesson.reason,
+                        lesson.cancelledAt
+                    }
+                };
+            }
+            catch (Exception)
+            {
+                return Error("An unexpected error occurred", ResponseStatus.Error);
+            }
+        }
 
         public async Task<LessonResponseDTO> CancelAsync(
             Guid id,
             CancelLessonRequestDTO request)
         {
             if (id == Guid.Empty)
-                return Error("Invalid lesson ID", "BadRequest");
+                return Error("Invalid lesson ID", ResponseStatus.InvalidArgument);
 
             if (request == null)
-                return Error("Request is required", "BadRequest");
+                return Error("Request is required", ResponseStatus.InvalidArgument);
 
-            if (string.IsNullOrWhiteSpace(request.Reason) ||
-                request.Reason.Trim().Length < 5)
-            {
-                return Error(
-                    "Cancellation reason must have at least 5 characters",
-                    "BadRequest");
-            }
+            var reasonValidation = ValidateReason(request.Reason, "Cancellation");
+
+            if (reasonValidation != null)
+                return reasonValidation;
 
             try
             {
                 var lesson = await _lessonRepository.GetByIdAsync(id);
 
                 if (lesson == null)
-                    return Error("Lesson not found", "NotFound");
+                    return Error("Lesson not found", ResponseStatus.NotFound);
 
                 lesson.Cancel(request.Reason);
 
@@ -475,7 +526,7 @@ namespace Application.Services
                 return new LessonResponseDTO
                 {
                     Message = "Lesson cancelled successfully",
-                    Status = "Success",
+                    Status = ResponseStatus.Success,
                     Data = new
                     {
                         id = lesson.Id,
@@ -486,166 +537,323 @@ namespace Application.Services
             }
             catch (ArgumentException ex)
             {
-                return Error(ex.Message, "BadRequest");
+                return Error(ex.Message, ResponseStatus.InvalidArgument);
             }
             catch (InvalidOperationException ex)
             {
-                return Error(ex.Message, "Conflict");
+                return Error(ex.Message, ResponseStatus.Conflict);
             }
             catch (Exception)
             {
-                return Error("An unexpected error occurred", "Error");
+                return Error("An unexpected error occurred", ResponseStatus.Error);
             }
         }
 
-
-        public async Task<LessonResponseDTO> RescheduleAsync(
-            Guid id,
-            RescheduleLessonRequestDTO request)
+        public async Task<LessonResponseDTO> CompleteAsync(Guid id)
         {
             if (id == Guid.Empty)
-                return Error("Invalid lesson ID", "BadRequest");
-
-            if (request == null)
-                return Error("Request is required", "BadRequest");
-
-            if (request.NewStartsAt <= DateTime.Now)
-                return Error("New lesson date must be in the future", "BadRequest");
-
-            if (string.IsNullOrWhiteSpace(request.Room))
-                return Error("Room is required", "BadRequest");
-
-            if (request.Room.Trim().Length > 60)
-                return Error("Room cannot exceed 60 characters", "BadRequest");
-
-            if (string.IsNullOrWhiteSpace(request.Reason) ||
-                request.Reason.Trim().Length < 5)
-            {
-                return Error(
-                    "Rescheduling reason must have at least 5 characters",
-                    "BadRequest");
-            }
+                return Error("Invalid lesson ID", ResponseStatus.InvalidArgument);
 
             try
             {
                 var lesson = await _lessonRepository.GetByIdAsync(id);
 
                 if (lesson == null)
-                    return Error("Lesson not found", "NotFound");
+                    return Error("Lesson not found", ResponseStatus.NotFound);
 
-                if (lesson.Status != LessonStatus.Scheduled)
-                    return Error(
-                        "Only scheduled lessons can be rescheduled",
-                        "Conflict");
+                lesson.Complete();
 
-                if (lesson.StartsAt <= DateTime.Now)
-                    return Error(
-                        "A lesson that has already started cannot be rescheduled",
-                        "Conflict");
-
-                var enrollment = await _enrollmentRepository
-                    .GetByIdAsync(lesson.EnrollmentId);
-
-                if (enrollment == null)
-                    return Error("Enrollment not found", "NotFound");
-
-                var newEndsAt = request.NewStartsAt.AddMinutes(
-                    lesson.DurationMinutes);
-
-                if (await _lessonRepository.HasTeacherConflictAsync(
-                    lesson.TeacherId,
-                    request.NewStartsAt,
-                    newEndsAt,
-                    lesson.Id))
-                {
-                    return Error(
-                        "Conflict: teacher - Teacher already has a lesson at this time",
-                        "Conflict");
-                }
-
-                if (await _lessonRepository.HasStudentConflictAsync(
-                    enrollment.StudentId,
-                    request.NewStartsAt,
-                    newEndsAt,
-                    lesson.Id))
-                {
-                    return Error(
-                        "Conflict: student - Student already has a lesson at this time",
-                        "Conflict");
-                }
-
-                if (await _lessonRepository.HasRoomConflictAsync(
-                    request.Room,
-                    request.NewStartsAt,
-                    newEndsAt,
-                    lesson.Id))
-                {
-                    return Error(
-                        "Conflict: room - Room is already booked at this time",
-                        "Conflict");
-                }
-
-                // Save the original information for the history
-                var oldStartsAt = lesson.StartsAt;
-                var oldRoom = lesson.Room;
-
-                var lessonChange = new LessonChange(
-                    lesson,
-                    oldStartsAt,
-                    request.NewStartsAt,
-                    oldRoom,
-                    request.Room.Trim(),
-                    request.Reason);
-
-                // Update the lesson
-                lesson.Reschedule(
-                    request.NewStartsAt,
-                    request.Room);
-
-                // Save the lesson and history together
-                await _lessonRepository.UpdateWithHistoryAsync(
-                    lesson,
-                    lessonChange);
+                await _lessonRepository.UpdateAsync(lesson);
 
                 return new LessonResponseDTO
                 {
-                    Message = "Lesson rescheduled successfully",
-                    Status = "Success",
+                    Message = "Lesson completed successfully",
+                    Status = ResponseStatus.Success,
                     Data = new
                     {
                         id = lesson.Id,
-                        startsAt = lesson.StartsAt,
-                        endsAt = lesson.EndsAt,
-                        room = lesson.Room,
                         status = lesson.Status.ToString()
+                    }
+                };
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Error(ex.Message, ResponseStatus.Conflict);
+            }
+            catch (Exception)
+            {
+                return Error("An unexpected error occurred", ResponseStatus.Error);
+            }
+        }
+
+        public async Task<LessonResponseDTO> CancelSeriesAsync(
+            Guid seriesId,
+            CancelLessonSeriesRequestDTO request)
+        {
+            if (seriesId == Guid.Empty)
+                return Error("Invalid series ID", ResponseStatus.InvalidArgument);
+
+            if (request == null)
+                return Error("Request is required", ResponseStatus.InvalidArgument);
+
+            var reasonValidation = ValidateReason(request.Reason, "Cancellation");
+
+            if (reasonValidation != null)
+                return reasonValidation;
+
+            try
+            {
+                if (!await _lessonRepository.SeriesExistsAsync(seriesId))
+                    return Error("Lesson series not found", ResponseStatus.NotFound);
+
+                var lessons = await _lessonRepository
+                    .GetFutureScheduledBySeriesAsync(seriesId, DateTime.Now);
+
+                foreach (var lesson in lessons)
+                {
+                    lesson.Cancel(request.Reason);
+                }
+
+                if (lessons.Count > 0)
+                {
+                    await _lessonRepository.UpdateRangeAsync(lessons);
+                }
+
+                return new LessonResponseDTO
+                {
+                    Message = "Lesson series cancelled successfully",
+                    Status = ResponseStatus.Success,
+                    Data = new
+                    {
+                        seriesId,
+                        lessonsCancelled = lessons.Count
                     }
                 };
             }
             catch (ArgumentException ex)
             {
-                return Error(ex.Message, "BadRequest");
+                return Error(ex.Message, ResponseStatus.InvalidArgument);
             }
             catch (InvalidOperationException ex)
             {
-                return Error(ex.Message, "Conflict");
+                return Error(ex.Message, ResponseStatus.Conflict);
             }
             catch (Exception)
             {
-                return Error("An unexpected error occurred", "Error");
+                return Error("An unexpected error occurred", ResponseStatus.Error);
             }
         }
 
+        public async Task<LessonResponseDTO> RescheduleAsync(
+            Guid id,
+            RescheduleLessonRequestDTO request)
+        {
+            if (id == Guid.Empty)
+                return Error("Invalid lesson ID", ResponseStatus.InvalidArgument);
+
+            if (request == null)
+                return Error("Request is required", ResponseStatus.InvalidArgument);
+
+            var newStartsAt = Normalizer.LocalDateTime(request.NewStartsAt);
+
+            if (newStartsAt <= DateTime.Now)
+                return Error("New lesson date must be in the future", ResponseStatus.InvalidArgument);
+
+            if (string.IsNullOrWhiteSpace(request.Room))
+                return Error("Room is required", ResponseStatus.InvalidArgument);
+
+            var room = request.Room.Trim();
+
+            if (room.Length > MaxRoomLength)
+                return Error($"Room cannot exceed {MaxRoomLength} characters", ResponseStatus.InvalidArgument);
+
+            var reasonValidation = ValidateReason(request.Reason, "Rescheduling");
+
+            if (reasonValidation != null)
+                return reasonValidation;
+
+            try
+            {
+                var lesson = await _lessonRepository.GetByIdAsync(id);
+
+                if (lesson == null)
+                    return Error("Lesson not found", ResponseStatus.NotFound);
+
+                if (lesson.Status != LessonStatus.Scheduled)
+                {
+                    return Error(
+                        "Only scheduled lessons can be rescheduled",
+                        ResponseStatus.Conflict);
+                }
+
+                if (lesson.StartsAt <= DateTime.Now)
+                {
+                    return Error(
+                        "A lesson that has already started cannot be rescheduled",
+                        ResponseStatus.Conflict);
+                }
+
+                var enrollment = await _enrollmentRepository
+                    .GetByIdAsync(lesson.EnrollmentId);
+
+                if (enrollment == null)
+                    return Error("Enrollment not found", ResponseStatus.NotFound);
+
+                if (enrollment.Status != EnrollmentStatus.Active)
+                    return Error("Enrollment is inactive", ResponseStatus.Conflict);
+
+                var newEndsAt = newStartsAt.AddMinutes(lesson.DurationMinutes);
+
+                return await _unitOfWork.ExecuteSerializableAsync(async () =>
+                {
+                    var conflict = await CheckConflictsAsync(
+                        lesson.TeacherId,
+                        enrollment.StudentId,
+                        room,
+                        newStartsAt,
+                        newEndsAt,
+                        lesson.Id);
+
+                    if (conflict != null)
+                        return conflict;
+
+                    var lessonChange = new LessonChange(
+                        lesson,
+                        lesson.StartsAt,
+                        newStartsAt,
+                        lesson.Room,
+                        room,
+                        request.Reason);
+
+                    lesson.Reschedule(newStartsAt, room);
+
+                    await _lessonRepository.UpdateWithHistoryAsync(lesson, lessonChange);
+
+                    return new LessonResponseDTO
+                    {
+                        Message = "Lesson rescheduled successfully",
+                        Status = ResponseStatus.Success,
+                        Data = new
+                        {
+                            id = lesson.Id,
+                            startsAt = lesson.StartsAt,
+                            endsAt = lesson.EndsAt,
+                            room = lesson.Room,
+                            status = lesson.Status.ToString()
+                        }
+                    };
+                });
+            }
+            catch (ConcurrencyConflictException ex)
+            {
+                return Error(ex.Message, ResponseStatus.Conflict);
+            }
+            catch (ArgumentException ex)
+            {
+                return Error(ex.Message, ResponseStatus.InvalidArgument);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Error(ex.Message, ResponseStatus.Conflict);
+            }
+            catch (Exception)
+            {
+                return Error("An unexpected error occurred", ResponseStatus.Error);
+            }
+        }
+
+        private async Task<LessonResponseDTO?> CheckConflictsAsync(
+            Guid teacherId,
+            Guid studentId,
+            string room,
+            DateTime startsAt,
+            DateTime endsAt,
+            Guid? excludeLessonId = null)
+        {
+            if (await _lessonRepository.HasTeacherConflictAsync(
+                teacherId, startsAt, endsAt, excludeLessonId))
+            {
+                return Error(
+                    "Conflict: teacher - Teacher already has a lesson at this time",
+                    ResponseStatus.Conflict);
+            }
+
+            if (await _lessonRepository.HasStudentConflictAsync(
+                studentId, startsAt, endsAt, excludeLessonId))
+            {
+                return Error(
+                    "Conflict: student - Student already has a lesson at this time",
+                    ResponseStatus.Conflict);
+            }
+
+            if (await _lessonRepository.HasRoomConflictAsync(
+                room, startsAt, endsAt, excludeLessonId))
+            {
+                return Error(
+                    "Conflict: room - Room is already booked at this time",
+                    ResponseStatus.Conflict);
+            }
+
+            return null;
+        }
+
+        private static bool TeachesInstrument(Teacher teacher, string instrumentName) =>
+            teacher.Specialties.Any(s =>
+                !string.IsNullOrWhiteSpace(s) &&
+                string.Equals(
+                    s.Trim(),
+                    instrumentName.Trim(),
+                    StringComparison.OrdinalIgnoreCase));
+
+        private static LessonResponseDTO? ValidateDurationAndRoom(
+            int durationMinutes,
+            string? room)
+        {
+            if (durationMinutes < MinDurationMinutes ||
+                durationMinutes > MaxDurationMinutes)
+            {
+                return Error(
+                    $"Lesson duration must be between {MinDurationMinutes} and {MaxDurationMinutes} minutes",
+                    ResponseStatus.InvalidArgument);
+            }
+
+            if (string.IsNullOrWhiteSpace(room))
+                return Error("Room is required", ResponseStatus.InvalidArgument);
+
+            if (room.Trim().Length > MaxRoomLength)
+                return Error($"Room cannot exceed {MaxRoomLength} characters", ResponseStatus.InvalidArgument);
+
+            return null;
+        }
+
+        private static LessonResponseDTO? ValidateReason(string? reason, string action)
+        {
+            var trimmed = reason?.Trim() ?? string.Empty;
+
+            if (trimmed.Length < MinReasonLength)
+            {
+                return Error(
+                    $"{action} reason must have at least {MinReasonLength} characters",
+                    ResponseStatus.InvalidArgument);
+            }
+
+            if (trimmed.Length > MaxReasonLength)
+            {
+                return Error(
+                    $"{action} reason cannot exceed {MaxReasonLength} characters",
+                    ResponseStatus.InvalidArgument);
+            }
+
+            return null;
+        }
 
         private static LessonResponseDTO Error(
             string message,
-            string status)
-        {
-            return new LessonResponseDTO
+            string status) => new()
             {
                 Message = message,
                 Status = status,
                 Data = null
             };
-        }
     }
 }

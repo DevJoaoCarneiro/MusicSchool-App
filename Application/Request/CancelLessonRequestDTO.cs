@@ -1,7 +1,7 @@
 ﻿
 using System.ComponentModel.DataAnnotations;
 
-namespace Application.DTOs
+namespace Application.Request
 {
     public class CancelLessonRequestDTO
     {

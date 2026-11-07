@@ -1,5 +1,5 @@
-﻿
-using Application.DTOs;
+﻿using Application.Request;
+using Application.Response;
 
 namespace Application.Interfaces
 {
@@ -12,11 +12,18 @@ namespace Application.Interfaces
             DateTime? from,
             DateTime? to,
             Guid? teacherId,
-            Guid? studentId);
+            Guid? studentId,
+            string? teacherEmail);
+
+        Task<LessonResponseDTO> GetByIdAsync(
+            Guid id,
+            string? teacherEmail);
 
         Task<LessonResponseDTO> CancelAsync(
             Guid id,
             CancelLessonRequestDTO request);
+
+        Task<LessonResponseDTO> CompleteAsync(Guid id);
 
         Task<LessonResponseDTO> RescheduleAsync(
             Guid id,
@@ -24,5 +31,9 @@ namespace Application.Interfaces
 
         Task<LessonResponseDTO> CreateRecurringAsync(
             CreateRecurringLessonDTO request);
+
+        Task<LessonResponseDTO> CancelSeriesAsync(
+            Guid seriesId,
+            CancelLessonSeriesRequestDTO request);
     }
 }

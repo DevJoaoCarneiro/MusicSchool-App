@@ -22,5 +22,15 @@ namespace Domain.Entities
             PasswordHash = passwordHash;
             Role = role;
         }
+
+        public void ChangePassword(string passwordHash)
+        {
+            if (string.IsNullOrWhiteSpace(passwordHash))
+                throw new ArgumentException(
+                    "Password hash is required",
+                    nameof(passwordHash));
+
+            PasswordHash = passwordHash;
+        }
     }
 }

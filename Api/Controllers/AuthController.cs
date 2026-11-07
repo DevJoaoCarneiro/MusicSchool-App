@@ -1,16 +1,14 @@
-
-using Application.Request;
 using Application.Interfaces;
-using Application.Response;
-using Microsoft.AspNetCore.Mvc;
+using Application.Request;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Api.Controllers
 {
-    [ApiController]
     [Route("api/auth")]
     [Authorize]
-    public class AuthController : ControllerBase
+    public class AuthController : ApiControllerBase
     {
         private readonly IAuthServices _authServices;
 
@@ -20,33 +18,12 @@ namespace Api.Controllers
         }
 
         [AllowAnonymous]
+        [EnableRateLimiting(RateLimitPolicies.Login)]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] AuthRequestDTO request)
         {
-            if (!ModelState.IsValid)
-            {
-                var bad = new AuthResponseDTO
-                {
-                    Message = "Invalid request parameters",
-                    Status = "InvalidArgument",
-                    Data = null
-                };
-
-                return BadRequest(bad);
-            }
-
             var response = await _authServices.LoginAsync(request);
-
-            if (response.Status == "InvalidArgument")
-                return BadRequest(response);
-
-            if (response.Status == "Unauthorized")
-                return Unauthorized(response);
-
-            if (response.Status == "Error")
-                return StatusCode(500, response);
-
-            return Ok(response);
+            return FromStatus(response.Status, response);
         }
     }
 }

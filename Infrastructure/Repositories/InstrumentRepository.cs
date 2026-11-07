@@ -1,5 +1,4 @@
-﻿
-using Domain.Entities;
+﻿using Domain.Entities;
 using Domain.Interfaces;
 using Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
@@ -59,7 +58,6 @@ namespace Infrastructure.Repositories
             return await _context.SaveChangesAsync() > 0;
         }
 
-
         public async Task<bool> HasActiveEnrollmentsAsync(Guid instrumentId)
         {
             return await _context.Enrollments
@@ -68,5 +66,10 @@ namespace Infrastructure.Repositories
                     e.Status == EnrollmentStatus.Active);
         }
 
+        public async Task<bool> HasAnyEnrollmentAsync(Guid instrumentId)
+        {
+            return await _context.Enrollments
+                .AnyAsync(e => e.InstrumentId == instrumentId);
+        }
     }
 }

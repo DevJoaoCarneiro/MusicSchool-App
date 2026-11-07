@@ -1,14 +1,31 @@
-﻿
-using Domain.Entities;
+﻿using Domain.Entities;
 using System.Linq.Expressions;
 
 namespace Domain.Interfaces
 {
+    public record LessonSlot(
+        Guid Id,
+        Guid TeacherId,
+        Guid StudentId,
+        string Room,
+        DateTime StartsAt,
+        int DurationMinutes)
+    {
+        public DateTime EndsAt => StartsAt.AddMinutes(DurationMinutes);
+
+        public bool Overlaps(DateTime startsAt, DateTime endsAt) =>
+            StartsAt < endsAt && EndsAt > startsAt;
+    }
+
     public interface ILessonRepository
     {
         Task<Lesson> AddAsync(Lesson lesson);
 
         Task<Lesson?> GetByIdAsync(Guid id);
+
+        Task<TResult?> GetByIdAsync<TResult>(
+            Guid id,
+            Expression<Func<Lesson, Teacher, TResult>> selector);
 
         Task<bool> HasFutureScheduledLessonsByEnrollmentAsync(
             Guid enrollmentId,
@@ -34,6 +51,13 @@ namespace Domain.Interfaces
             DateTime endsAt,
             Guid? excludeLessonId = null);
 
+        Task<List<LessonSlot>> GetScheduledSlotsAsync(
+            Guid teacherId,
+            Guid studentId,
+            string room,
+            DateTime from,
+            DateTime to);
+
         Task<List<TResult>> GetByDateRangeAsync<TResult>(
             DateTime from,
             DateTime to,
@@ -48,5 +72,13 @@ namespace Domain.Interfaces
         Task AddRecurringAsync(
             LessonSeries series,
             List<Lesson> lessons);
+
+        Task<bool> SeriesExistsAsync(Guid seriesId);
+
+        Task<List<Lesson>> GetFutureScheduledBySeriesAsync(
+            Guid seriesId,
+            DateTime from);
+
+        Task UpdateRangeAsync(IEnumerable<Lesson> lessons);
     }
 }

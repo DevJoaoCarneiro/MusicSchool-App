@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Domain.Entities;
+﻿using Domain.Entities;
 
 namespace Domain.Interfaces
 {
@@ -20,12 +17,22 @@ namespace Domain.Interfaces
         Task<bool> HasActiveEnrollmentsByStudentAsync(
             Guid studentId);
 
+        Task<bool> HasAnyEnrollmentByStudentAsync(Guid studentId);
+
+        Task<bool> HasLessonWithTeacherAsync(
+            Guid enrollmentId,
+            Guid teacherId);
+
         Task<(List<Enrollment> Items, int Total)> GetAllAsync(
             Guid? studentId,
             Guid? instrumentId,
             EnrollmentStatus? status,
+            Guid? teacherId,
             int page,
             int pageSize);
-        Task<List<Enrollment>> GetActiveUntilAsync(DateTime monthEnd);
+
+        Task<List<Enrollment>> GetBillableForMonthAsync(
+            DateTime monthStart,
+            DateTime monthEnd);
     }
 }

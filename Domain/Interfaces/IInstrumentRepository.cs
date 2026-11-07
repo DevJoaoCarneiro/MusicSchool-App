@@ -1,5 +1,4 @@
-﻿
-using Domain.Entities;
+﻿using Domain.Entities;
 
 namespace Domain.Interfaces
 {
@@ -18,5 +17,7 @@ namespace Domain.Interfaces
         Task<bool> DeleteAsync(Instrument instrument);
 
         Task<bool> HasActiveEnrollmentsAsync(Guid instrumentId);
+
+        Task<bool> HasAnyEnrollmentAsync(Guid instrumentId);
     }
 }

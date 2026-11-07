@@ -1,16 +1,13 @@
-﻿
-using Application.Interfaces;
+﻿using Application.Interfaces;
 using Application.Request;
-using Application.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers
 {
-    [ApiController]
     [Route("api/instruments")]
     [Authorize]
-    public class InstrumentController : ControllerBase
+    public class InstrumentController : ApiControllerBase
     {
         private readonly IInstrumentServices _services;
 
@@ -25,32 +22,24 @@ namespace Api.Controllers
             [FromBody] InstrumentRequestDTO request)
         {
             var response = await _services.CreateAsync(request);
-
-            return MapResponse(response);
+            return FromStatus(response.Status, response);
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var response = await _services.GetAllAsync();
-            return MapResponse(response);
+            return FromStatus(response.Status, response);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
             if (!Guid.TryParse(id, out var instrumentId))
-            {
-                return BadRequest(new InstrumentResponseDTO
-                {
-                    Message = "Invalid instrument ID",
-                    Status = "BadRequest",
-                    Data = null
-                });
-            }
+                return InvalidId("instrument");
 
             var response = await _services.GetByIdAsync(instrumentId);
-            return MapResponse(response);
+            return FromStatus(response.Status, response);
         }
 
         [HttpPut("{id}")]
@@ -60,17 +49,10 @@ namespace Api.Controllers
             [FromBody] InstrumentRequestDTO request)
         {
             if (!Guid.TryParse(id, out var instrumentId))
-            {
-                return BadRequest(new InstrumentResponseDTO
-                {
-                    Message = "Invalid instrument ID",
-                    Status = "BadRequest",
-                    Data = null
-                });
-            }
+                return InvalidId("instrument");
 
             var response = await _services.UpdateAsync(instrumentId, request);
-            return MapResponse(response);
+            return FromStatus(response.Status, response);
         }
 
         [HttpDelete("{id}")]
@@ -78,29 +60,10 @@ namespace Api.Controllers
         public async Task<IActionResult> Delete(string id)
         {
             if (!Guid.TryParse(id, out var instrumentId))
-            {
-                return BadRequest(new InstrumentResponseDTO
-                {
-                    Message = "Invalid instrument ID",
-                    Status = "BadRequest",
-                    Data = null
-                });
-            }
+                return InvalidId("instrument");
 
             var response = await _services.DeleteAsync(instrumentId);
-            return MapResponse(response);
-        }
-
-        private IActionResult MapResponse(InstrumentResponseDTO response)
-        {
-            return response.Status switch
-            {
-                "Success" => Ok(response),
-                "BadRequest" => BadRequest(response),
-                "NotFound" => NotFound(response),
-                "Conflict" => Conflict(response),
-                _ => StatusCode(500, response)
-            };
+            return FromStatus(response.Status, response);
         }
     }
 }

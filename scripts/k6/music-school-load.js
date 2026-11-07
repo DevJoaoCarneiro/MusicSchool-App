@@ -68,7 +68,7 @@ export default function (data) {
 
   group('students', () => {
     const response = http.get(
-      `${baseUrl}/api/Student?page=1&pageSize=20`,
+      `${baseUrl}/api/students?page=1&pageSize=20`,
       {
         headers,
         tags: { endpoint: 'students' },

@@ -1,24 +1,20 @@
 ﻿using Application.Interfaces;
 using Application.Request;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    [Authorize]
-    public class StudentController : ControllerBase
+    [Route("api/students")]
+    [Route("api/Student")]
+    [Authorize(Roles = "Admin,Secretary,Teacher")]
+    public class StudentController : ApiControllerBase
     {
         private readonly IStudentServices _studentService;
-        private readonly ILogger<StudentController> _logger;
 
-        public StudentController(
-            IStudentServices studentService,
-            ILogger<StudentController> logger)
+        public StudentController(IStudentServices studentService)
         {
             _studentService = studentService;
-            _logger = logger;
         }
 
         [HttpPost]
@@ -26,74 +22,19 @@ namespace Api.Controllers
         public async Task<IActionResult> Create(
             [FromBody] StudentRequestDTO studentRequestDTO)
         {
-            try
-            {
-                var result = await _studentService.CreateStudent(studentRequestDTO);
-
-                return result.Status switch
-                {
-                    "invalid_argument" => BadRequest(result),
-                    "conflict" => Conflict(result),
-                    "error" => StatusCode(
-                        StatusCodes.Status500InternalServerError,
-                        result
-                    ),
-                    _ => Ok(result)
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error while creating student");
-
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError
-                );
-            }
+            var result = await _studentService.CreateStudent(studentRequestDTO);
+            return FromStatus(result.Status, result);
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Secretary")]
         public async Task<IActionResult> GetById(string id)
         {
-            try
-            {
-                if (!Guid.TryParse(id, out Guid studentId))
-                {
-                    return BadRequest(new
-                    {
-                        Message = "Invalid student ID format",
-                        Status = "invalid_argument",
-                        Data = (object?)null
-                    });
-                }
+            if (!Guid.TryParse(id, out var studentId))
+                return InvalidId("student");
 
-                var result = await _studentService.GetByIdAsync(studentId);
-
-                return result.Status switch
-                {
-                    "not_found" => NotFound(result),
-
-                    "error" => StatusCode(
-                        StatusCodes.Status500InternalServerError,
-                        result
-                    ),
-
-                    _ => Ok(result)
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error while getting student by ID");
-
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    new
-                    {
-                        Message = "An unexpected error occurred",
-                        Status = "error",
-                        Data = (object?)null
-                    }
-                );
-            }
+            var result = await _studentService.GetByIdAsync(studentId);
+            return FromStatus(result.Status, result);
         }
 
         [HttpGet]
@@ -102,142 +43,32 @@ namespace Api.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
         {
-            try
-            {
-                var result = await _studentService.GetAllAsync(
-                    name,
-                    page,
-                    pageSize
-                );
-
-                return result.Status switch
-                {
-                    "invalid_argument" => BadRequest(result),
-
-                    "error" => StatusCode(
-                        StatusCodes.Status500InternalServerError,
-                        result
-                    ),
-
-                    _ => Ok(result)
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error while retrieving students");
-
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError
-                );
-            }
+            var result = await _studentService.GetAllAsync(name, page, pageSize);
+            return FromStatus(result.Status, result);
         }
 
-        
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin,Secretary")]
         public async Task<IActionResult> Update(
             string id,
             [FromBody] StudentRequestDTO studentRequestDTO)
         {
-            try
-            {
-                // Validar formato del ID
-                if (!Guid.TryParse(id, out Guid studentId))
-                {
-                    return BadRequest(new
-                    {
-                        Message = "Invalid student ID format",
-                        Status = "invalid_argument",
-                        Data = (object?)null
-                    });
-                }
+            if (!Guid.TryParse(id, out var studentId))
+                return InvalidId("student");
 
-                var result = await _studentService.UpdateStudentAsync(
-                    studentId,
-                    studentRequestDTO
-                );
-
-                return result.Status switch
-                {
-                    "invalid_argument" => BadRequest(result),
-
-                    "not_found" => NotFound(result),
-
-                    "conflict" => Conflict(result),
-
-                    "error" => StatusCode(
-                        StatusCodes.Status500InternalServerError,
-                        result
-                    ),
-
-                    _ => Ok(result)
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error while updating student");
-
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    new
-                    {
-                        Message = "An unexpected error occurred",
-                        Status = "error",
-                        Data = (object?)null
-                    }
-                );
-            }
+            var result = await _studentService.UpdateStudentAsync(studentId, studentRequestDTO);
+            return FromStatus(result.Status, result);
         }
-    
 
-    [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin,Secretary")]
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,Secretary")]
         public async Task<IActionResult> Delete(string id)
         {
-            try
-            {
-                if (!Guid.TryParse(id, out Guid studentId))
-                {
-                    return BadRequest(new
-                    {
-                        Message = "Invalid student ID format",
-                        Status = "invalid_argument",
-                        Data = (object?)null
-                    });
-                }
+            if (!Guid.TryParse(id, out var studentId))
+                return InvalidId("student");
 
-                var result = await _studentService.DeleteStudentAsync(studentId);
-
-                return result.Status switch
-                {
-                    "not_found" => NotFound(result),
-
-                    "conflict" => Conflict(result),
-
-                    "error" => StatusCode(
-                        StatusCodes.Status500InternalServerError,
-                        result
-                    ),
-
-                    _ => Ok(result)
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error while deleting student");
-
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    new
-                    {
-                        Message = "An unexpected error occurred",
-                        Status = "error",
-                        Data = (object?)null
-                    }
-                );
-            }
+            var result = await _studentService.DeleteStudentAsync(studentId);
+            return FromStatus(result.Status, result);
         }
-
     }
-
 }

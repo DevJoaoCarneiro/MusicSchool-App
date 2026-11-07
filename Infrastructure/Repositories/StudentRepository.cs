@@ -26,8 +26,10 @@ namespace Infrastructure.Repositories
 
         public async Task<bool> ExistsByEmailAsync(string email)
         {
+            var normalized = email.Trim().ToLower();
+
             return await _context.Students
-                .AnyAsync(s => s.Email == email);
+                .AnyAsync(s => s.Email.ToLower() == normalized);
         }
 
         public async Task<bool> ExistsByCpfAsync(string cpf)
@@ -39,7 +41,6 @@ namespace Infrastructure.Repositories
         public async Task<Student?> GetByIdAsync(Guid id)
         {
             return await _context.Students
-                .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.Id == id);
         }
 
@@ -55,10 +56,10 @@ namespace Infrastructure.Repositories
         }
 
         public async Task<(List<TResult> Items, int Total)> GetAllAsync<TResult>(
-    string? name,
-    int page,
-    int pageSize,
-    Expression<Func<Student, TResult>> selector)
+            string? name,
+            int page,
+            int pageSize,
+            Expression<Func<Student, TResult>> selector)
         {
             var query = _context.Students
                 .AsNoTracking()
@@ -76,6 +77,7 @@ namespace Infrastructure.Repositories
 
             var items = await query
                 .OrderBy(s => s.Name)
+                .ThenBy(s => s.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(selector)
@@ -88,11 +90,12 @@ namespace Infrastructure.Repositories
             string email,
             Guid id)
         {
+            var normalized = email.Trim().ToLower();
+
             return await _context.Students
-                .AnyAsync(s => s.Email == email && s.Id != id);
+                .AnyAsync(s => s.Email.ToLower() == normalized && s.Id != id);
         }
 
-        
         public async Task<bool> ExistsByCpfExceptIdAsync(
             string cpf,
             Guid id)
@@ -101,10 +104,12 @@ namespace Infrastructure.Repositories
                 .AnyAsync(s => s.Cpf == cpf && s.Id != id);
         }
 
-       
         public async Task<Student> UpdateAsync(Student student)
         {
-            _context.Students.Update(student);
+            if (_context.Entry(student).State == EntityState.Detached)
+            {
+                _context.Students.Update(student);
+            }
 
             await _context.SaveChangesAsync();
 

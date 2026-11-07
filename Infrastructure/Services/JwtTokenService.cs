@@ -33,6 +33,8 @@ namespace Infrastructure.Services
                 throw new InvalidOperationException("JWT issuer is not configured.");
             }
 
+            var jwtAudience = _configuration["Jwt:Audience"];
+
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(secretKey)
             );
@@ -46,6 +48,8 @@ namespace Infrastructure.Services
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(JwtRegisteredClaimNames.Name, user.Name),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(ClaimTypes.Role, user.Role.ToString())
             };
 
@@ -53,6 +57,7 @@ namespace Infrastructure.Services
 
             var token = new JwtSecurityToken(
                 issuer: jwtIssuer,
+                audience: string.IsNullOrWhiteSpace(jwtAudience) ? null : jwtAudience,
                 claims: claims,
                 expires: expiration,
                 signingCredentials: credentials

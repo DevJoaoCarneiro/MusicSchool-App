@@ -107,6 +107,19 @@ namespace Domain.Entities
         }
 
 
+        public void Complete()
+        {
+            if (Status != LessonStatus.Scheduled)
+                throw new InvalidOperationException(
+                    "Only scheduled lessons can be completed");
+
+            if (StartsAt > DateTime.Now)
+                throw new InvalidOperationException(
+                    "A lesson that has not started yet cannot be completed");
+
+            Status = LessonStatus.Completed;
+        }
+
         public void Reschedule(DateTime newStartsAt, string newRoom)
         {
             if (Status != LessonStatus.Scheduled)

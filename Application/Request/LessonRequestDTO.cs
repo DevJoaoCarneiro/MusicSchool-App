@@ -1,5 +1,5 @@
 ﻿
-namespace Application.DTOs
+namespace Application.Request
 {
     public class LessonRequestDTO
     {
