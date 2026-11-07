@@ -1,3 +1,13 @@
+import { AuthProvider } from '@/contexts/AuthProvider'
+import { ToastProvider } from '@/contexts/ToastProvider'
+import { AppRouter } from '@/routes/AppRouter'
+
 export function App() {
-  return <h1>MusicSchool</h1>
+  return (
+    <AuthProvider>
+      <ToastProvider>
+        <AppRouter />
+      </ToastProvider>
+    </AuthProvider>
+  )
 }

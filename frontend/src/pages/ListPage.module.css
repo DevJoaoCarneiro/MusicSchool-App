@@ -1,0 +1,8 @@
+.toolbar {
+  margin-bottom: var(--space-5);
+}
+
+.actions {
+  display: inline-flex;
+  gap: var(--space-1);
+}

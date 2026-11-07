@@ -15,7 +15,12 @@ export interface ApiResponse<T> {
 
 export interface PagedResult<T> {
   items: T[]
+  page: number
+  pageSize: number
   total: number
+}
+
+export interface PageParams {
   page: number
   pageSize: number
 }
