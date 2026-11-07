@@ -23,7 +23,7 @@ namespace Api.Controllers
         }
 
         [HttpPost("generate")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Secretary")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -61,7 +61,7 @@ namespace Api.Controllers
         }
 
         [HttpPatch("{id}/payment")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Secretary")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
