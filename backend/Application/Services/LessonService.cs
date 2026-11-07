@@ -40,18 +40,18 @@ namespace Application.Services
             LessonRequestDTO request)
         {
             if (request == null)
-                return Error("Request is required", ResponseStatus.InvalidArgument);
+                return Error("Corpo da requisição é obrigatório", ResponseStatus.InvalidArgument);
 
             if (request.EnrollmentId == Guid.Empty)
-                return Error("Enrollment is required", ResponseStatus.InvalidArgument);
+                return Error("Matrícula é obrigatória", ResponseStatus.InvalidArgument);
 
             if (request.TeacherId == Guid.Empty)
-                return Error("Teacher is required", ResponseStatus.InvalidArgument);
+                return Error("Professor é obrigatório", ResponseStatus.InvalidArgument);
 
             var startsAt = Normalizer.LocalDateTime(request.StartsAt);
 
             if (startsAt <= DateTime.Now)
-                return Error("Lesson date must be in the future", ResponseStatus.InvalidArgument);
+                return Error("A data da aula deve estar no futuro", ResponseStatus.InvalidArgument);
 
             var basicValidation = ValidateDurationAndRoom(request.DurationMinutes, request.Room);
 
@@ -66,21 +66,21 @@ namespace Application.Services
                     .GetByIdAsync(request.EnrollmentId);
 
                 if (enrollment == null)
-                    return Error("Enrollment not found", ResponseStatus.NotFound);
+                    return Error("Matrícula não encontrada", ResponseStatus.NotFound);
 
                 if (enrollment.Status != EnrollmentStatus.Active)
-                    return Error("Enrollment is inactive", ResponseStatus.Conflict);
+                    return Error("A matrícula não está ativa", ResponseStatus.Conflict);
 
                 var teacher = await _teacherRepository
                     .GetByIdAsync(request.TeacherId);
 
                 if (teacher == null)
-                    return Error("Teacher not found", ResponseStatus.NotFound);
+                    return Error("Professor não encontrado", ResponseStatus.NotFound);
 
                 if (!TeachesInstrument(teacher, enrollment.Instrument.Name))
                 {
                     return Error(
-                        "Teacher does not teach the instrument of this enrollment",
+                        "O professor não ensina o instrumento desta matrícula",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -109,7 +109,7 @@ namespace Application.Services
 
                     return new LessonResponseDTO
                     {
-                        Message = "Lesson scheduled successfully",
+                        Message = "Aula agendada com sucesso",
                         Status = ResponseStatus.Success,
                         Data = new
                         {
@@ -143,7 +143,7 @@ namespace Application.Services
             }
             catch (Exception)
             {
-                return Error("An unexpected error occurred", ResponseStatus.Error);
+                return Error("Ocorreu um erro inesperado", ResponseStatus.Error);
             }
         }
 
@@ -151,20 +151,20 @@ namespace Application.Services
             CreateRecurringLessonDTO request)
         {
             if (request == null)
-                return Error("Request is required", ResponseStatus.InvalidArgument);
+                return Error("Corpo da requisição é obrigatório", ResponseStatus.InvalidArgument);
 
             if (request.EnrollmentId == Guid.Empty)
-                return Error("Enrollment is required", ResponseStatus.InvalidArgument);
+                return Error("Matrícula é obrigatória", ResponseStatus.InvalidArgument);
 
             if (request.TeacherId == Guid.Empty)
-                return Error("Teacher is required", ResponseStatus.InvalidArgument);
+                return Error("Professor é obrigatório", ResponseStatus.InvalidArgument);
 
             if (string.IsNullOrWhiteSpace(request.Weekday) ||
                 int.TryParse(request.Weekday, out _) ||
                 !Enum.TryParse<DayOfWeek>(request.Weekday.Trim(), true, out var weekday) ||
                 !Enum.IsDefined(weekday))
             {
-                return Error("Invalid weekday", ResponseStatus.InvalidArgument);
+                return Error("Dia da semana inválido", ResponseStatus.InvalidArgument);
             }
 
             if (!TimeSpan.TryParseExact(
@@ -173,7 +173,7 @@ namespace Application.Services
                 CultureInfo.InvariantCulture,
                 out var lessonTime))
             {
-                return Error("Invalid time. Use HH:mm format", ResponseStatus.InvalidArgument);
+                return Error("Horário inválido. Use o formato HH:mm", ResponseStatus.InvalidArgument);
             }
 
             var basicValidation = ValidateDurationAndRoom(request.DurationMinutes, request.Room);
@@ -187,10 +187,10 @@ namespace Application.Services
             var endDate = Normalizer.LocalDateTime(request.EndDate).Date;
 
             if (endDate < startDate)
-                return Error("End date must be on or after start date", ResponseStatus.InvalidArgument);
+                return Error("A data final deve ser igual ou posterior à data inicial", ResponseStatus.InvalidArgument);
 
             if (endDate > startDate.AddMonths(MaxRecurringMonths))
-                return Error("Recurring period cannot exceed six months", ResponseStatus.InvalidArgument);
+                return Error("O período da recorrência não pode passar de seis meses", ResponseStatus.InvalidArgument);
 
             try
             {
@@ -198,21 +198,21 @@ namespace Application.Services
                     .GetByIdAsync(request.EnrollmentId);
 
                 if (enrollment == null)
-                    return Error("Enrollment not found", ResponseStatus.NotFound);
+                    return Error("Matrícula não encontrada", ResponseStatus.NotFound);
 
                 if (enrollment.Status != EnrollmentStatus.Active)
-                    return Error("Enrollment is inactive", ResponseStatus.Conflict);
+                    return Error("A matrícula não está ativa", ResponseStatus.Conflict);
 
                 var teacher = await _teacherRepository
                     .GetByIdAsync(request.TeacherId);
 
                 if (teacher == null)
-                    return Error("Teacher not found", ResponseStatus.NotFound);
+                    return Error("Professor não encontrado", ResponseStatus.NotFound);
 
                 if (!TeachesInstrument(teacher, enrollment.Instrument.Name))
                 {
                     return Error(
-                        "Teacher does not teach the instrument of this enrollment",
+                        "O professor não ensina o instrumento desta matrícula",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -230,7 +230,7 @@ namespace Application.Services
                 if (slots.Count == 0)
                 {
                     return Error(
-                        "No lessons found in the selected period",
+                        "Nenhuma aula no período selecionado",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -239,7 +239,7 @@ namespace Application.Services
                 if (past != default)
                 {
                     return Error(
-                        $"Lesson date {past.StartsAt:yyyy-MM-dd} must be in the future",
+                        $"A aula de {past.StartsAt:dd/MM/yyyy} precisa estar no futuro",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -265,7 +265,7 @@ namespace Application.Services
                     {
                         return new LessonResponseDTO
                         {
-                            Message = "Conflicts found in recurring lessons",
+                            Message = "Há conflitos de horário nas aulas recorrentes",
                             Status = ResponseStatus.Conflict,
                             Data = new { conflictingDates }
                         };
@@ -300,7 +300,7 @@ namespace Application.Services
 
                     return new LessonResponseDTO
                     {
-                        Message = "Recurring lessons scheduled successfully",
+                        Message = "Aulas recorrentes agendadas com sucesso",
                         Status = ResponseStatus.Success,
                         Data = new
                         {
@@ -322,7 +322,7 @@ namespace Application.Services
             }
             catch (Exception)
             {
-                return Error("An unexpected error occurred", ResponseStatus.Error);
+                return Error("Ocorreu um erro inesperado", ResponseStatus.Error);
             }
         }
 
@@ -336,7 +336,7 @@ namespace Application.Services
             if (!from.HasValue || !to.HasValue)
             {
                 return Error(
-                    "The from and to dates are required",
+                    "As datas inicial e final são obrigatórias",
                     ResponseStatus.InvalidArgument);
             }
 
@@ -346,22 +346,22 @@ namespace Application.Services
             if (endDate < startDate)
             {
                 return Error(
-                    "The to date must be on or after the from date",
+                    "A data final deve ser igual ou posterior à data inicial",
                     ResponseStatus.InvalidArgument);
             }
 
             if ((endDate - startDate).TotalDays + 1 > MaxRangeDays)
             {
                 return Error(
-                    $"The date range cannot exceed {MaxRangeDays} days",
+                    $"O período não pode passar de {MaxRangeDays} dias",
                     ResponseStatus.InvalidArgument);
             }
 
             if (teacherId == Guid.Empty)
-                return Error("Invalid teacherId", ResponseStatus.InvalidArgument);
+                return Error("Professor inválido", ResponseStatus.InvalidArgument);
 
             if (studentId == Guid.Empty)
-                return Error("Invalid studentId", ResponseStatus.InvalidArgument);
+                return Error("Aluno inválido", ResponseStatus.InvalidArgument);
 
             try
             {
@@ -373,7 +373,7 @@ namespace Application.Services
                     {
                         return new LessonResponseDTO
                         {
-                            Message = "Lessons retrieved successfully",
+                            Message = "Aulas listadas com sucesso",
                             Status = ResponseStatus.Success,
                             Data = Array.Empty<object>()
                         };
@@ -382,7 +382,7 @@ namespace Application.Services
                     if (teacherId.HasValue && teacherId.Value != callerTeacher.Id)
                     {
                         return Error(
-                            "Teachers can only view their own lessons",
+                            "Professores só podem ver as próprias aulas",
                             ResponseStatus.Forbidden);
                     }
 
@@ -422,14 +422,14 @@ namespace Application.Services
 
                 return new LessonResponseDTO
                 {
-                    Message = "Lessons retrieved successfully",
+                    Message = "Aulas listadas com sucesso",
                     Status = ResponseStatus.Success,
                     Data = results
                 };
             }
             catch (Exception)
             {
-                return Error("An unexpected error occurred", ResponseStatus.Error);
+                return Error("Ocorreu um erro inesperado", ResponseStatus.Error);
             }
         }
 
@@ -438,7 +438,7 @@ namespace Application.Services
             string? teacherEmail)
         {
             if (id == Guid.Empty)
-                return Error("Invalid lesson ID", ResponseStatus.InvalidArgument);
+                return Error("ID de aula inválido", ResponseStatus.InvalidArgument);
 
             try
             {
@@ -467,12 +467,12 @@ namespace Application.Services
                     (teacherEmail != null &&
                      !string.Equals(lesson.teacherEmail, teacherEmail, StringComparison.OrdinalIgnoreCase)))
                 {
-                    return Error("Lesson not found", ResponseStatus.NotFound);
+                    return Error("Aula não encontrada", ResponseStatus.NotFound);
                 }
 
                 return new LessonResponseDTO
                 {
-                    Message = "Lesson retrieved successfully",
+                    Message = "Aula encontrada com sucesso",
                     Status = ResponseStatus.Success,
                     Data = new
                     {
@@ -493,7 +493,7 @@ namespace Application.Services
             }
             catch (Exception)
             {
-                return Error("An unexpected error occurred", ResponseStatus.Error);
+                return Error("Ocorreu um erro inesperado", ResponseStatus.Error);
             }
         }
 
@@ -502,12 +502,12 @@ namespace Application.Services
             CancelLessonRequestDTO request)
         {
             if (id == Guid.Empty)
-                return Error("Invalid lesson ID", ResponseStatus.InvalidArgument);
+                return Error("ID de aula inválido", ResponseStatus.InvalidArgument);
 
             if (request == null)
-                return Error("Request is required", ResponseStatus.InvalidArgument);
+                return Error("Corpo da requisição é obrigatório", ResponseStatus.InvalidArgument);
 
-            var reasonValidation = ValidateReason(request.Reason, "Cancellation");
+            var reasonValidation = ValidateReason(request.Reason, "cancelamento");
 
             if (reasonValidation != null)
                 return reasonValidation;
@@ -517,7 +517,7 @@ namespace Application.Services
                 var lesson = await _lessonRepository.GetByIdAsync(id);
 
                 if (lesson == null)
-                    return Error("Lesson not found", ResponseStatus.NotFound);
+                    return Error("Aula não encontrada", ResponseStatus.NotFound);
 
                 lesson.Cancel(request.Reason);
 
@@ -525,7 +525,7 @@ namespace Application.Services
 
                 return new LessonResponseDTO
                 {
-                    Message = "Lesson cancelled successfully",
+                    Message = "Aula cancelada com sucesso",
                     Status = ResponseStatus.Success,
                     Data = new
                     {
@@ -545,21 +545,21 @@ namespace Application.Services
             }
             catch (Exception)
             {
-                return Error("An unexpected error occurred", ResponseStatus.Error);
+                return Error("Ocorreu um erro inesperado", ResponseStatus.Error);
             }
         }
 
         public async Task<LessonResponseDTO> CompleteAsync(Guid id)
         {
             if (id == Guid.Empty)
-                return Error("Invalid lesson ID", ResponseStatus.InvalidArgument);
+                return Error("ID de aula inválido", ResponseStatus.InvalidArgument);
 
             try
             {
                 var lesson = await _lessonRepository.GetByIdAsync(id);
 
                 if (lesson == null)
-                    return Error("Lesson not found", ResponseStatus.NotFound);
+                    return Error("Aula não encontrada", ResponseStatus.NotFound);
 
                 lesson.Complete();
 
@@ -567,7 +567,7 @@ namespace Application.Services
 
                 return new LessonResponseDTO
                 {
-                    Message = "Lesson completed successfully",
+                    Message = "Aula concluída com sucesso",
                     Status = ResponseStatus.Success,
                     Data = new
                     {
@@ -582,7 +582,7 @@ namespace Application.Services
             }
             catch (Exception)
             {
-                return Error("An unexpected error occurred", ResponseStatus.Error);
+                return Error("Ocorreu um erro inesperado", ResponseStatus.Error);
             }
         }
 
@@ -591,12 +591,12 @@ namespace Application.Services
             CancelLessonSeriesRequestDTO request)
         {
             if (seriesId == Guid.Empty)
-                return Error("Invalid series ID", ResponseStatus.InvalidArgument);
+                return Error("ID de série inválido", ResponseStatus.InvalidArgument);
 
             if (request == null)
-                return Error("Request is required", ResponseStatus.InvalidArgument);
+                return Error("Corpo da requisição é obrigatório", ResponseStatus.InvalidArgument);
 
-            var reasonValidation = ValidateReason(request.Reason, "Cancellation");
+            var reasonValidation = ValidateReason(request.Reason, "cancelamento");
 
             if (reasonValidation != null)
                 return reasonValidation;
@@ -604,7 +604,7 @@ namespace Application.Services
             try
             {
                 if (!await _lessonRepository.SeriesExistsAsync(seriesId))
-                    return Error("Lesson series not found", ResponseStatus.NotFound);
+                    return Error("Série de aulas não encontrada", ResponseStatus.NotFound);
 
                 var lessons = await _lessonRepository
                     .GetFutureScheduledBySeriesAsync(seriesId, DateTime.Now);
@@ -621,7 +621,7 @@ namespace Application.Services
 
                 return new LessonResponseDTO
                 {
-                    Message = "Lesson series cancelled successfully",
+                    Message = "Série de aulas cancelada com sucesso",
                     Status = ResponseStatus.Success,
                     Data = new
                     {
@@ -640,7 +640,7 @@ namespace Application.Services
             }
             catch (Exception)
             {
-                return Error("An unexpected error occurred", ResponseStatus.Error);
+                return Error("Ocorreu um erro inesperado", ResponseStatus.Error);
             }
         }
 
@@ -649,25 +649,25 @@ namespace Application.Services
             RescheduleLessonRequestDTO request)
         {
             if (id == Guid.Empty)
-                return Error("Invalid lesson ID", ResponseStatus.InvalidArgument);
+                return Error("ID de aula inválido", ResponseStatus.InvalidArgument);
 
             if (request == null)
-                return Error("Request is required", ResponseStatus.InvalidArgument);
+                return Error("Corpo da requisição é obrigatório", ResponseStatus.InvalidArgument);
 
             var newStartsAt = Normalizer.LocalDateTime(request.NewStartsAt);
 
             if (newStartsAt <= DateTime.Now)
-                return Error("New lesson date must be in the future", ResponseStatus.InvalidArgument);
+                return Error("A nova data da aula deve estar no futuro", ResponseStatus.InvalidArgument);
 
             if (string.IsNullOrWhiteSpace(request.Room))
-                return Error("Room is required", ResponseStatus.InvalidArgument);
+                return Error("Sala é obrigatória", ResponseStatus.InvalidArgument);
 
             var room = request.Room.Trim();
 
             if (room.Length > MaxRoomLength)
-                return Error($"Room cannot exceed {MaxRoomLength} characters", ResponseStatus.InvalidArgument);
+                return Error($"Sala deve ter no máximo {MaxRoomLength} caracteres", ResponseStatus.InvalidArgument);
 
-            var reasonValidation = ValidateReason(request.Reason, "Rescheduling");
+            var reasonValidation = ValidateReason(request.Reason, "reagendamento");
 
             if (reasonValidation != null)
                 return reasonValidation;
@@ -677,19 +677,19 @@ namespace Application.Services
                 var lesson = await _lessonRepository.GetByIdAsync(id);
 
                 if (lesson == null)
-                    return Error("Lesson not found", ResponseStatus.NotFound);
+                    return Error("Aula não encontrada", ResponseStatus.NotFound);
 
                 if (lesson.Status != LessonStatus.Scheduled)
                 {
                     return Error(
-                        "Only scheduled lessons can be rescheduled",
+                        "Somente aulas agendadas podem ser reagendadas",
                         ResponseStatus.Conflict);
                 }
 
                 if (lesson.StartsAt <= DateTime.Now)
                 {
                     return Error(
-                        "A lesson that has already started cannot be rescheduled",
+                        "Uma aula que já começou não pode ser reagendada",
                         ResponseStatus.Conflict);
                 }
 
@@ -697,10 +697,10 @@ namespace Application.Services
                     .GetByIdAsync(lesson.EnrollmentId);
 
                 if (enrollment == null)
-                    return Error("Enrollment not found", ResponseStatus.NotFound);
+                    return Error("Matrícula não encontrada", ResponseStatus.NotFound);
 
                 if (enrollment.Status != EnrollmentStatus.Active)
-                    return Error("Enrollment is inactive", ResponseStatus.Conflict);
+                    return Error("A matrícula não está ativa", ResponseStatus.Conflict);
 
                 var newEndsAt = newStartsAt.AddMinutes(lesson.DurationMinutes);
 
@@ -731,7 +731,7 @@ namespace Application.Services
 
                     return new LessonResponseDTO
                     {
-                        Message = "Lesson rescheduled successfully",
+                        Message = "Aula reagendada com sucesso",
                         Status = ResponseStatus.Success,
                         Data = new
                         {
@@ -758,7 +758,7 @@ namespace Application.Services
             }
             catch (Exception)
             {
-                return Error("An unexpected error occurred", ResponseStatus.Error);
+                return Error("Ocorreu um erro inesperado", ResponseStatus.Error);
             }
         }
 
@@ -774,7 +774,7 @@ namespace Application.Services
                 teacherId, startsAt, endsAt, excludeLessonId))
             {
                 return Error(
-                    "Conflict: teacher - Teacher already has a lesson at this time",
+                    "Conflito de horário: o professor já tem aula neste horário",
                     ResponseStatus.Conflict);
             }
 
@@ -782,7 +782,7 @@ namespace Application.Services
                 studentId, startsAt, endsAt, excludeLessonId))
             {
                 return Error(
-                    "Conflict: student - Student already has a lesson at this time",
+                    "Conflito de horário: o aluno já tem aula neste horário",
                     ResponseStatus.Conflict);
             }
 
@@ -790,7 +790,7 @@ namespace Application.Services
                 room, startsAt, endsAt, excludeLessonId))
             {
                 return Error(
-                    "Conflict: room - Room is already booked at this time",
+                    "Conflito de horário: a sala já está ocupada neste horário",
                     ResponseStatus.Conflict);
             }
 
@@ -813,15 +813,15 @@ namespace Application.Services
                 durationMinutes > MaxDurationMinutes)
             {
                 return Error(
-                    $"Lesson duration must be between {MinDurationMinutes} and {MaxDurationMinutes} minutes",
+                    $"A duração da aula deve estar entre {MinDurationMinutes} e {MaxDurationMinutes} minutos",
                     ResponseStatus.InvalidArgument);
             }
 
             if (string.IsNullOrWhiteSpace(room))
-                return Error("Room is required", ResponseStatus.InvalidArgument);
+                return Error("Sala é obrigatória", ResponseStatus.InvalidArgument);
 
             if (room.Trim().Length > MaxRoomLength)
-                return Error($"Room cannot exceed {MaxRoomLength} characters", ResponseStatus.InvalidArgument);
+                return Error($"Sala deve ter no máximo {MaxRoomLength} caracteres", ResponseStatus.InvalidArgument);
 
             return null;
         }
@@ -833,14 +833,14 @@ namespace Application.Services
             if (trimmed.Length < MinReasonLength)
             {
                 return Error(
-                    $"{action} reason must have at least {MinReasonLength} characters",
+                    $"Motivo do {action} deve ter pelo menos {MinReasonLength} caracteres",
                     ResponseStatus.InvalidArgument);
             }
 
             if (trimmed.Length > MaxReasonLength)
             {
                 return Error(
-                    $"{action} reason cannot exceed {MaxReasonLength} characters",
+                    $"Motivo do {action} deve ter no máximo {MaxReasonLength} caracteres",
                     ResponseStatus.InvalidArgument);
             }
 

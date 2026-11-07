@@ -35,7 +35,7 @@ public class UserServiceTest
         var result = await _service.CreateUser(request);
 
         //Assert
-        Assert.Equal("User created successfully", result.Message);
+        Assert.Equal("Usuário criado com sucesso", result.Message);
         Assert.Equal("Success", result.Status);
         Assert.Equal(request.Name, result.Data?.Name);
         Assert.Equal(request.Email, result.Data?.Email);
@@ -59,7 +59,7 @@ public class UserServiceTest
         var result = await _service.CreateUser(request);
 
         //Assert
-        Assert.Equal("Email is already in use", result.Message);
+        Assert.Equal("E-mail já está em uso", result.Message);
         Assert.Equal("conflict", result.Status);
         Assert.Null(result.Data);
         await _userRepository.DidNotReceive().AddAsync(Arg.Any<Domain.Entities.User>());
@@ -96,7 +96,7 @@ public class UserServiceTest
         var result = await _service.CreateUser(request!);
 
         //Assert
-        Assert.Equal("Parameters is empty or null", result.Message);
+        Assert.Equal("Parâmetros não informados", result.Message);
         Assert.Equal("invalid_argument", result.Status);
         Assert.Null(result.Data);
     }

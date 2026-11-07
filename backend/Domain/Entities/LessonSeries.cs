@@ -40,28 +40,28 @@ namespace Domain.Entities
             string room)
         {
             if (enrollmentId == Guid.Empty)
-                throw new ArgumentException("Enrollment is required");
+                throw new ArgumentException("Matrícula é obrigatória");
 
             if (teacherId == Guid.Empty)
-                throw new ArgumentException("Teacher is required");
+                throw new ArgumentException("Professor é obrigatório");
 
             if (endDate.Date < startDate.Date)
                 throw new ArgumentException(
-                    "End date must be on or after start date");
+                    "A data final deve ser igual ou posterior à data inicial");
 
             if (durationMinutes < 30 || durationMinutes > 120)
                 throw new ArgumentOutOfRangeException(
                     nameof(durationMinutes));
 
             if (time < TimeSpan.Zero || time >= TimeSpan.FromDays(1))
-                throw new ArgumentException("Invalid lesson time");
+                throw new ArgumentException("Horário da aula inválido");
 
             if (string.IsNullOrWhiteSpace(room))
-                throw new ArgumentException("Room is required");
+                throw new ArgumentException("Sala é obrigatória");
 
             if (room.Trim().Length > 60)
                 throw new ArgumentException(
-                    "Room cannot exceed 60 characters");
+                    "Sala deve ter no máximo 60 caracteres");
 
             Id = Guid.NewGuid();
             EnrollmentId = enrollmentId;

@@ -5,8 +5,8 @@ namespace Application.Request
 {
     public class CancelLessonRequestDTO
     {
-        [Required(ErrorMessage = "Cancellation reason is required")]
-        [MinLength(5, ErrorMessage = "Cancellation reason must have at least 5 characters")]
+        [Required(ErrorMessage = "Motivo do cancelamento é obrigatório")]
+        [MinLength(5, ErrorMessage = "Motivo do cancelamento deve ter pelo menos 5 caracteres")]
         public string Reason { get; set; } = string.Empty;
     }
 }

@@ -33,10 +33,10 @@ namespace Application.Services
                     return validation;
 
                 if (await _studentRepository.ExistsByEmailAsync(input.Email))
-                    return Result("Email is already in use", ResponseStatus.Conflict);
+                    return Result("E-mail já está em uso", ResponseStatus.Conflict);
 
                 if (await _studentRepository.ExistsByCpfAsync(input.Cpf))
-                    return Result("CPF is already in use", ResponseStatus.Conflict);
+                    return Result("CPF já está em uso", ResponseStatus.Conflict);
 
                 var student = new Student(
                     input.Name,
@@ -50,14 +50,14 @@ namespace Application.Services
                 await _studentRepository.AddAsync(student);
 
                 return Result(
-                    "Student created successfully",
+                    "Aluno cadastrado com sucesso",
                     ResponseStatus.Success,
                     ToData(student));
             }
             catch (Exception)
             {
                 return Result(
-                    "An unexpected error occurred while creating the student",
+                    "Ocorreu um erro inesperado ao cadastrar o aluno",
                     ResponseStatus.Error);
             }
         }
@@ -96,17 +96,17 @@ namespace Application.Services
                     });
 
                 if (student == null)
-                    return Result("Student not found", ResponseStatus.NotFound);
+                    return Result("Aluno não encontrado", ResponseStatus.NotFound);
 
                 return Result(
-                    "Student found successfully",
+                    "Aluno encontrado com sucesso",
                     ResponseStatus.Success,
                     student);
             }
             catch (Exception)
             {
                 return Result(
-                    "An unexpected error occurred while retrieving the student",
+                    "Ocorreu um erro inesperado ao buscar o aluno",
                     ResponseStatus.Error);
             }
         }
@@ -142,7 +142,7 @@ namespace Application.Services
 
                 return new StudentListResponseDTO
                 {
-                    Message = "Students retrieved successfully",
+                    Message = "Alunos listados com sucesso",
                     Status = ResponseStatus.Success,
                     Data = new StudentListData
                     {
@@ -157,7 +157,7 @@ namespace Application.Services
             {
                 return new StudentListResponseDTO
                 {
-                    Message = "An unexpected error occurred while retrieving students",
+                    Message = "Ocorreu um erro inesperado ao listar os alunos",
                     Status = ResponseStatus.Error
                 };
             }
@@ -177,13 +177,13 @@ namespace Application.Services
                 var student = await _studentRepository.GetByIdAsync(id);
 
                 if (student == null)
-                    return Result("Student not found", ResponseStatus.NotFound);
+                    return Result("Aluno não encontrado", ResponseStatus.NotFound);
 
                 if (await _studentRepository.ExistsByEmailExceptIdAsync(input.Email, id))
-                    return Result("Email is already in use", ResponseStatus.Conflict);
+                    return Result("E-mail já está em uso", ResponseStatus.Conflict);
 
                 if (await _studentRepository.ExistsByCpfExceptIdAsync(input.Cpf, id))
-                    return Result("CPF is already in use", ResponseStatus.Conflict);
+                    return Result("CPF já está em uso", ResponseStatus.Conflict);
 
                 student.Update(
                     input.Name,
@@ -197,14 +197,14 @@ namespace Application.Services
                 await _studentRepository.UpdateAsync(student);
 
                 return Result(
-                    "Student updated successfully",
+                    "Aluno atualizado com sucesso",
                     ResponseStatus.Success,
                     ToData(student));
             }
             catch (Exception)
             {
                 return Result(
-                    "An unexpected error occurred while updating the student",
+                    "Ocorreu um erro inesperado ao atualizar o aluno",
                     ResponseStatus.Error);
             }
         }
@@ -216,30 +216,30 @@ namespace Application.Services
                 var student = await _studentRepository.GetByIdAsync(id);
 
                 if (student == null)
-                    return Result("Student not found", ResponseStatus.NotFound);
+                    return Result("Aluno não encontrado", ResponseStatus.NotFound);
 
                 if (await _enrollmentRepository.HasActiveEnrollmentsByStudentAsync(id))
                 {
                     return Result(
-                        "Cannot delete the student because they have active enrollments",
+                        "Não é possível excluir o aluno porque ele tem matrículas ativas",
                         ResponseStatus.Conflict);
                 }
 
                 if (await _enrollmentRepository.HasAnyEnrollmentByStudentAsync(id))
                 {
                     return Result(
-                        "Cannot delete the student because they have enrollment history",
+                        "Não é possível excluir o aluno porque ele tem histórico de matrículas",
                         ResponseStatus.Conflict);
                 }
 
                 await _studentRepository.DeleteAsync(student);
 
-                return Result("Student deleted successfully", ResponseStatus.Success);
+                return Result("Aluno excluído com sucesso", ResponseStatus.Success);
             }
             catch (Exception)
             {
                 return Result(
-                    "An unexpected error occurred while deleting the student",
+                    "Ocorreu um erro inesperado ao excluir o aluno",
                     ResponseStatus.Error);
             }
         }
@@ -260,7 +260,7 @@ namespace Application.Services
             input = null!;
 
             if (request == null)
-                return Result("Parameters is empty or null", ResponseStatus.InvalidArgument);
+                return Result("Parâmetros não informados", ResponseStatus.InvalidArgument);
 
             if (string.IsNullOrWhiteSpace(request.Name) ||
                 string.IsNullOrWhiteSpace(request.Email) ||
@@ -269,23 +269,23 @@ namespace Application.Services
                 request.BirthDate == null)
             {
                 return Result(
-                    "Name, email, phone, CPF and birth date are required",
+                    "Nome, e-mail, telefone, CPF e data de nascimento são obrigatórios",
                     ResponseStatus.InvalidArgument);
             }
 
             var cpf = CpfValidator.Normalize(request.Cpf);
 
             if (!CpfValidator.IsValid(cpf))
-                return Result("Invalid CPF", ResponseStatus.InvalidArgument);
+                return Result("CPF inválido", ResponseStatus.InvalidArgument);
 
             var birthDate = request.BirthDate.Value.Date;
             var today = DateTime.Today;
 
             if (birthDate > today)
-                return Result("Birth date cannot be in the future", ResponseStatus.InvalidArgument);
+                return Result("Data de nascimento não pode estar no futuro", ResponseStatus.InvalidArgument);
 
             if (request.Address == null)
-                return Result("Address is required", ResponseStatus.InvalidArgument);
+                return Result("Endereço é obrigatório", ResponseStatus.InvalidArgument);
 
             if (string.IsNullOrWhiteSpace(request.Address.Street) ||
                 string.IsNullOrWhiteSpace(request.Address.Number) ||
@@ -293,7 +293,7 @@ namespace Application.Services
                 string.IsNullOrWhiteSpace(request.Address.State) ||
                 string.IsNullOrWhiteSpace(request.Address.ZipCode))
             {
-                return Result("All address fields are required", ResponseStatus.InvalidArgument);
+                return Result("Todos os campos do endereço são obrigatórios", ResponseStatus.InvalidArgument);
             }
 
             var age = today.Year - birthDate.Year;
@@ -304,7 +304,7 @@ namespace Application.Services
             if (age < AdultAge && request.Guardian == null)
             {
                 return Result(
-                    "Guardian is required for students under 18 years old",
+                    "Responsável é obrigatório para alunos menores de 18 anos",
                     ResponseStatus.InvalidArgument);
             }
 
@@ -317,18 +317,18 @@ namespace Application.Services
                     string.IsNullOrWhiteSpace(request.Guardian.Email) ||
                     string.IsNullOrWhiteSpace(request.Guardian.Cpf))
                 {
-                    return Result("All guardian fields are required", ResponseStatus.InvalidArgument);
+                    return Result("Todos os campos do responsável são obrigatórios", ResponseStatus.InvalidArgument);
                 }
 
                 var guardianCpf = CpfValidator.Normalize(request.Guardian.Cpf);
 
                 if (!CpfValidator.IsValid(guardianCpf))
-                    return Result("Invalid guardian CPF", ResponseStatus.InvalidArgument);
+                    return Result("CPF do responsável inválido", ResponseStatus.InvalidArgument);
 
                 if (guardianCpf == cpf)
                 {
                     return Result(
-                        "Guardian CPF must be different from the student CPF",
+                        "CPF do responsável deve ser diferente do CPF do aluno",
                         ResponseStatus.InvalidArgument);
                 }
 

@@ -37,7 +37,7 @@ namespace Domain.Entities
             if (string.IsNullOrWhiteSpace(reason) ||
                 reason.Trim().Length < 5)
                 throw new ArgumentException(
-                    "Rescheduling reason must have at least 5 characters",
+                    "Motivo do reagendamento deve ter pelo menos 5 caracteres",
                     nameof(reason));
 
             Id = Guid.NewGuid();

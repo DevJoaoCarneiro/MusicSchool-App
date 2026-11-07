@@ -38,7 +38,7 @@ namespace Application.Services
                 if (existing != null)
                 {
                     return Result(
-                        "Instrument name already exists",
+                        "Já existe um instrumento com este nome",
                         ResponseStatus.Conflict);
                 }
 
@@ -47,14 +47,14 @@ namespace Application.Services
                 await _repository.AddAsync(instrument);
 
                 return Result(
-                    "Instrument created successfully",
+                    "Instrumento criado com sucesso",
                     ResponseStatus.Success,
                     ToData(instrument));
             }
             catch (Exception)
             {
                 return Result(
-                    "An unexpected error occurred",
+                    "Ocorreu um erro inesperado",
                     ResponseStatus.Error);
             }
         }
@@ -68,14 +68,14 @@ namespace Application.Services
                 var data = instruments.Select(ToData).ToList();
 
                 return Result(
-                    "Instruments retrieved successfully",
+                    "Instrumentos listados com sucesso",
                     ResponseStatus.Success,
                     data);
             }
             catch (Exception)
             {
                 return Result(
-                    "An unexpected error occurred",
+                    "Ocorreu um erro inesperado",
                     ResponseStatus.Error);
             }
         }
@@ -89,19 +89,19 @@ namespace Application.Services
                 if (instrument == null)
                 {
                     return Result(
-                        "Instrument not found",
+                        "Instrumento não encontrado",
                         ResponseStatus.NotFound);
                 }
 
                 return Result(
-                    "Instrument retrieved successfully",
+                    "Instrumento encontrado com sucesso",
                     ResponseStatus.Success,
                     ToData(instrument));
             }
             catch (Exception)
             {
                 return Result(
-                    "An unexpected error occurred",
+                    "Ocorreu um erro inesperado",
                     ResponseStatus.Error);
             }
         }
@@ -122,7 +122,7 @@ namespace Application.Services
                 if (instrument == null)
                 {
                     return Result(
-                        "Instrument not found",
+                        "Instrumento não encontrado",
                         ResponseStatus.NotFound);
                 }
 
@@ -131,7 +131,7 @@ namespace Application.Services
                 if (existing != null && existing.Id != id)
                 {
                     return Result(
-                        "Instrument name already exists",
+                        "Já existe um instrumento com este nome",
                         ResponseStatus.Conflict);
                 }
 
@@ -147,14 +147,14 @@ namespace Application.Services
                 }
 
                 return Result(
-                    "Instrument updated successfully",
+                    "Instrumento atualizado com sucesso",
                     ResponseStatus.Success,
                     ToData(instrument));
             }
             catch (Exception)
             {
                 return Result(
-                    "An unexpected error occurred",
+                    "Ocorreu um erro inesperado",
                     ResponseStatus.Error);
             }
         }
@@ -168,21 +168,21 @@ namespace Application.Services
                 if (instrument == null)
                 {
                     return Result(
-                        "Instrument not found",
+                        "Instrumento não encontrado",
                         ResponseStatus.NotFound);
                 }
 
                 if (await _repository.HasActiveEnrollmentsAsync(id))
                 {
                     return Result(
-                        "Instrument has active enrollments",
+                        "O instrumento possui matrículas ativas",
                         ResponseStatus.Conflict);
                 }
 
                 if (await _repository.HasAnyEnrollmentAsync(id))
                 {
                     return Result(
-                        "Instrument has enrollment history and cannot be deleted",
+                        "O instrumento possui histórico de matrículas e não pode ser excluído",
                         ResponseStatus.Conflict);
                 }
 
@@ -191,18 +191,18 @@ namespace Application.Services
                 if (!deleted)
                 {
                     return Result(
-                        "Instrument could not be deleted",
+                        "Não foi possível excluir o instrumento",
                         ResponseStatus.Error);
                 }
 
                 return Result(
-                    "Instrument deleted successfully",
+                    "Instrumento excluído com sucesso",
                     ResponseStatus.Success);
             }
             catch (Exception)
             {
                 return Result(
-                    "An unexpected error occurred",
+                    "Ocorreu um erro inesperado",
                     ResponseStatus.Error);
             }
         }
@@ -218,7 +218,7 @@ namespace Application.Services
             if (request == null || string.IsNullOrWhiteSpace(request.Name))
             {
                 return Result(
-                    "Instrument name is required",
+                    "Nome do instrumento é obrigatório",
                     ResponseStatus.InvalidArgument);
             }
 
@@ -228,14 +228,14 @@ namespace Application.Services
             if (name.Length > MaxNameLength)
             {
                 return Result(
-                    $"Instrument name cannot exceed {MaxNameLength} characters",
+                    $"Nome do instrumento deve ter no máximo {MaxNameLength} caracteres",
                     ResponseStatus.InvalidArgument);
             }
 
             if (description.Length > MaxDescriptionLength)
             {
                 return Result(
-                    $"Instrument description cannot exceed {MaxDescriptionLength} characters",
+                    $"Descrição do instrumento deve ter no máximo {MaxDescriptionLength} caracteres",
                     ResponseStatus.InvalidArgument);
             }
 

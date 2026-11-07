@@ -23,7 +23,7 @@ namespace Api.Controllers
 
         protected IActionResult InvalidId(string entity) => BadRequest(new
         {
-            Message = $"Invalid {entity} ID",
+            Message = $"ID de {entity} inválido",
             Status = ResponseStatus.InvalidArgument,
             Data = (object?)null
         });

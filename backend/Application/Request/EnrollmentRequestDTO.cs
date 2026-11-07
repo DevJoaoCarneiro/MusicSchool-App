@@ -7,21 +7,21 @@ namespace Application.Request
 {
     public class EnrollmentRequestDTO
     {
-        [Required]
+        [Required(ErrorMessage = "Aluno é obrigatório")]
         public Guid StudentId { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Instrumento é obrigatório")]
         public Guid InstrumentId { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Data de início é obrigatória")]
         public DateTime? StartDate { get; set; }
 
-        [Required]
-        [Range(0.01, 9999999999)]
+        [Required(ErrorMessage = "Mensalidade é obrigatória")]
+        [Range(0.01, 9999999999, ErrorMessage = "Mensalidade deve ser maior que zero")]
         public decimal MonthlyFee { get; set; }
 
-        [Required]
-        [Range(1, 28)]
+        [Required(ErrorMessage = "Dia de vencimento é obrigatório")]
+        [Range(1, 28, ErrorMessage = "Dia de vencimento deve estar entre 1 e 28")]
         public int DueDay { get; set; }
     }
 }

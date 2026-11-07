@@ -125,10 +125,14 @@ dotnet ef database update --project Infrastructure --startup-project Api
 
 ## 🎨 Frontend
 
-React 19 + TypeScript com Vite, organizado em componentes. Detalhes em [`frontend/README.md`](frontend/README.md).
+React 19 + TypeScript com Vite, organizado em componentes e integrado à API. Detalhes em [`frontend/README.md`](frontend/README.md).
+
+Com a API rodando (`https://localhost:7260`):
 
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+
+O front abre em `http://localhost:5173` e encaminha `/api` para o backend. Na primeira subida com banco vazio, a API exige `ADMIN_INITIAL_PASSWORD` para criar o administrador inicial (e aceita `ADMIN_INITIAL_EMAIL` e `ADMIN_INITIAL_NAME`).

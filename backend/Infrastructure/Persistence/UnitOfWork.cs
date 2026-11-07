@@ -33,7 +33,7 @@ namespace Infrastructure.Persistence
                 PostgresErrors.UniqueViolation))
             {
                 throw new ConcurrencyConflictException(
-                    "The operation conflicts with a concurrent request. Please try again.",
+                    "A operação conflitou com outra requisição simultânea. Tente novamente.",
                     ex);
             }
         }

@@ -4,15 +4,15 @@ namespace Application.Request
 {
     public class RescheduleLessonRequestDTO
     {
-        [Required(ErrorMessage = "New lesson date is required")]
+        [Required(ErrorMessage = "Nova data da aula é obrigatória")]
         public DateTime NewStartsAt { get; set; }
 
-        [Required(ErrorMessage = "Room is required")]
-        [MaxLength(60, ErrorMessage = "Room cannot exceed 60 characters")]
+        [Required(ErrorMessage = "Sala é obrigatória")]
+        [MaxLength(60, ErrorMessage = "Sala deve ter no máximo 60 caracteres")]
         public string Room { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Reason is required")]
-        [MinLength(5, ErrorMessage = "Reason must have at least 5 characters")]
+        [Required(ErrorMessage = "Motivo é obrigatório")]
+        [MinLength(5, ErrorMessage = "Motivo deve ter pelo menos 5 caracteres")]
         public string Reason { get; set; } = string.Empty;
     }
 }

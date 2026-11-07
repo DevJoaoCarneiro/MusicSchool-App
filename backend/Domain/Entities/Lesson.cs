@@ -53,27 +53,27 @@ namespace Domain.Entities
 
             if (enrollment.Status != EnrollmentStatus.Active)
                 throw new ArgumentException(
-                    "Enrollment is not active",
+                    "A matrícula não está ativa",
                     nameof(enrollment));
 
             if (teacherId == Guid.Empty)
                 throw new ArgumentException(
-                    "Teacher is required",
+                    "Professor é obrigatório",
                     nameof(teacherId));
 
             if (startsAt <= DateTime.Now)
                 throw new ArgumentException(
-                    "Lesson date must be in the future",
+                    "A data da aula deve estar no futuro",
                     nameof(startsAt));
 
             if (durationMinutes < 30 || durationMinutes > 120)
                 throw new ArgumentOutOfRangeException(
                     nameof(durationMinutes),
-                    "Lesson duration must be between 30 and 120 minutes");
+                    "A duração da aula deve estar entre 30 e 120 minutos");
 
             if (string.IsNullOrWhiteSpace(room))
                 throw new ArgumentException(
-                    "Room is required",
+                    "Sala é obrigatória",
                     nameof(room));
 
             Id = Guid.NewGuid();
@@ -90,16 +90,16 @@ namespace Domain.Entities
         {
             if (string.IsNullOrWhiteSpace(reason) || reason.Trim().Length < 5)
                 throw new ArgumentException(
-                    "Cancellation reason must have at least 5 characters",
+                    "Motivo do cancelamento deve ter pelo menos 5 caracteres",
                     nameof(reason));
 
             if (Status != LessonStatus.Scheduled)
                 throw new InvalidOperationException(
-                    "Only scheduled lessons can be cancelled");
+                    "Somente aulas agendadas podem ser canceladas");
 
             if (StartsAt <= DateTime.Now)
                 throw new InvalidOperationException(
-                    "A lesson that has already started cannot be cancelled");
+                    "Uma aula que já começou não pode ser cancelada");
 
             Status = LessonStatus.Cancelled;
             Reason = reason.Trim();
@@ -111,11 +111,11 @@ namespace Domain.Entities
         {
             if (Status != LessonStatus.Scheduled)
                 throw new InvalidOperationException(
-                    "Only scheduled lessons can be completed");
+                    "Somente aulas agendadas podem ser concluídas");
 
             if (StartsAt > DateTime.Now)
                 throw new InvalidOperationException(
-                    "A lesson that has not started yet cannot be completed");
+                    "Uma aula que ainda não começou não pode ser concluída");
 
             Status = LessonStatus.Completed;
         }
@@ -124,25 +124,25 @@ namespace Domain.Entities
         {
             if (Status != LessonStatus.Scheduled)
                 throw new InvalidOperationException(
-                    "Only scheduled lessons can be rescheduled");
+                    "Somente aulas agendadas podem ser reagendadas");
 
             if (StartsAt <= DateTime.Now)
                 throw new InvalidOperationException(
-                    "A lesson that has already started cannot be rescheduled");
+                    "Uma aula que já começou não pode ser reagendada");
 
             if (newStartsAt <= DateTime.Now)
                 throw new ArgumentException(
-                    "New lesson date must be in the future",
+                    "A nova data da aula deve estar no futuro",
                     nameof(newStartsAt));
 
             if (string.IsNullOrWhiteSpace(newRoom))
                 throw new ArgumentException(
-                    "Room is required",
+                    "Sala é obrigatória",
                     nameof(newRoom));
 
             if (newRoom.Trim().Length > 60)
                 throw new ArgumentException(
-                    "Room cannot exceed 60 characters",
+                    "Sala deve ter no máximo 60 caracteres",
                     nameof(newRoom));
 
             StartsAt = newStartsAt;
@@ -156,11 +156,11 @@ namespace Domain.Entities
 
             if (series.EnrollmentId != EnrollmentId)
                 throw new ArgumentException(
-                    "Lesson series enrollment does not match");
+                    "A matrícula não corresponde à série de aulas");
 
             if (series.TeacherId != TeacherId)
                 throw new ArgumentException(
-                    "Lesson series teacher does not match");
+                    "O professor não corresponde à série de aulas");
 
             LessonSeriesId = series.Id;
             LessonSeries = series;

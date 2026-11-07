@@ -35,7 +35,7 @@ namespace Application.Services
                         out var month))
                 {
                     return Error(
-                        "Reference month is required and must be in the format yyyy-MM",
+                        "Mês de referência é obrigatório e deve estar no formato yyyy-MM",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -46,7 +46,7 @@ namespace Application.Services
                 if (year < MinReferenceYear || monthStart > nextMonthStart)
                 {
                     return Error(
-                        $"Reference month must be between {MinReferenceYear}-01 and {nextMonthStart:yyyy-MM}",
+                        $"Mês de referência deve estar entre 01/{MinReferenceYear} e {nextMonthStart:MM/yyyy}",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -75,7 +75,7 @@ namespace Application.Services
 
                 return new GenerateTuitionsResponseDTO
                 {
-                    Message = "Tuitions generated successfully",
+                    Message = "Mensalidades geradas com sucesso",
                     Status = ResponseStatus.Success,
                     Data = new GenerateTuitionsData
                     {
@@ -92,7 +92,7 @@ namespace Application.Services
             catch (Exception)
             {
                 return Error(
-                    "An unexpected error occurred while generating tuitions",
+                    "Ocorreu um erro inesperado ao gerar as mensalidades",
                     ResponseStatus.Error);
             }
         }
@@ -106,35 +106,35 @@ namespace Application.Services
                 if (id == Guid.Empty)
                 {
                     return PaymentError(
-                        "Invalid tuition ID",
+                        "ID de mensalidade inválido",
                         ResponseStatus.InvalidArgument);
                 }
 
                 if (request == null)
                 {
                     return PaymentError(
-                        "Request body is required",
+                        "Corpo da requisição é obrigatório",
                         ResponseStatus.InvalidArgument);
                 }
 
                 if (request.PaidAt == null)
                 {
                     return PaymentError(
-                        "Payment date is required",
+                        "Data de pagamento é obrigatória",
                         ResponseStatus.InvalidArgument);
                 }
 
                 if (request.PaidAt.Value > DateOnly.FromDateTime(DateTime.Today))
                 {
                     return PaymentError(
-                        "Payment date cannot be in the future",
+                        "Data de pagamento não pode estar no futuro",
                         ResponseStatus.InvalidArgument);
                 }
 
                 if (request.Amount == null)
                 {
                     return PaymentError(
-                        "Amount is required",
+                        "Valor é obrigatório",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -146,21 +146,21 @@ namespace Application.Services
                 if (amount <= 0)
                 {
                     return PaymentError(
-                        "Amount must be greater than zero",
+                        "Valor deve ser maior que zero",
                         ResponseStatus.InvalidArgument);
                 }
 
                 if (amount > Tuition.MaxAmount)
                 {
                     return PaymentError(
-                        "Amount exceeds the maximum allowed",
+                        "Valor acima do máximo permitido",
                         ResponseStatus.InvalidArgument);
                 }
 
                 if (!TryParsePaymentMethod(request.Method, out var method))
                 {
                     return PaymentError(
-                        "Method is required and must be one of: Pix, Cash, Card",
+                        "Forma de pagamento é obrigatória: Pix, Dinheiro ou Cartão",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -168,20 +168,20 @@ namespace Application.Services
 
                 if (tuition == null)
                 {
-                    return PaymentError("Tuition not found", ResponseStatus.NotFound);
+                    return PaymentError("Mensalidade não encontrada", ResponseStatus.NotFound);
                 }
 
                 if (tuition.Status == TuitionStatus.Paid)
                 {
                     return PaymentError(
-                        "Tuition is already paid",
+                        "Mensalidade já está paga",
                         ResponseStatus.Conflict);
                 }
 
                 if (amount < tuition.Amount)
                 {
                     return PaymentError(
-                        $"Amount cannot be less than the tuition amount ({tuition.Amount:0.00})",
+                        $"Valor não pode ser menor que o da mensalidade (R$ {tuition.Amount:0.00})",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -192,13 +192,13 @@ namespace Application.Services
                 if (!await _tuitionRepository.RegisterPaymentIfPendingAsync(tuition))
                 {
                     return PaymentError(
-                        "Tuition is already paid",
+                        "Mensalidade já está paga",
                         ResponseStatus.Conflict);
                 }
 
                 return new RegisterTuitionPaymentResponseDTO
                 {
-                    Message = "Payment registered successfully",
+                    Message = "Pagamento registrado com sucesso",
                     Status = ResponseStatus.Success,
                     Data = new RegisterTuitionPaymentData
                     {
@@ -214,7 +214,7 @@ namespace Application.Services
             catch (Exception)
             {
                 return PaymentError(
-                    "An unexpected error occurred while registering the payment",
+                    "Ocorreu um erro inesperado ao registrar o pagamento",
                     ResponseStatus.Error);
             }
         }
@@ -237,7 +237,7 @@ namespace Application.Services
                 if (!Tuition.TryParseReferenceMonth(referenceMonth, out var year, out var month))
                 {
                     return ListError(
-                        "Reference month must be in the format yyyy-MM",
+                        "Mês de referência deve estar no formato yyyy-MM",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -254,7 +254,7 @@ namespace Application.Services
                 if (name == null)
                 {
                     return ListError(
-                        "Status must be Pending or Paid",
+                        "Status deve ser Pending ou Paid",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -273,7 +273,7 @@ namespace Application.Services
 
                 return new TuitionListResponseDTO
                 {
-                    Message = "Tuitions retrieved successfully",
+                    Message = "Mensalidades listadas com sucesso",
                     Status = ResponseStatus.Success,
                     Data = new TuitionListData
                     {
@@ -300,7 +300,7 @@ namespace Application.Services
             catch (Exception)
             {
                 return ListError(
-                    "An unexpected error occurred while retrieving tuitions",
+                    "Ocorreu um erro inesperado ao listar as mensalidades",
                     ResponseStatus.Error);
             }
         }

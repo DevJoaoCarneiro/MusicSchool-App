@@ -32,7 +32,7 @@ namespace Api.Controllers
             [FromBody] CloseEnrollmentRequestDTO request)
         {
             if (!Guid.TryParse(id, out var enrollmentId))
-                return InvalidId("enrollment");
+                return InvalidId("matrícula");
 
             var response = await _enrollmentServices.CloseEnrollmentAsync(enrollmentId, request);
             return FromStatus(response.Status, response);
@@ -63,7 +63,7 @@ namespace Api.Controllers
         public async Task<IActionResult> GetById(string id)
         {
             if (!Guid.TryParse(id, out var enrollmentId))
-                return InvalidId("enrollment");
+                return InvalidId("matrícula");
 
             var response = await _enrollmentServices.GetByIdAsync(enrollmentId, TeacherScopeEmail);
             return FromStatus(response.Status, response);

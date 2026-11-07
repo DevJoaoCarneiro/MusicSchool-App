@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { sessionStorageKey as storageKey } from '@/config/storage'
 import { authService } from '@/services/authService'
+import { unauthorizedEvent } from '@/services/http'
 import type { AuthSession, LoginRequest } from '@/types/entities'
 import { AuthContext, type AuthContextValue } from './auth-context'
 
@@ -32,17 +33,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await authService.login(request)
 
     if (response.status === 'Success' && response.data) {
-      setSession(response.data)
       writeSession(response.data)
+      setSession(response.data)
     }
 
     return response
   }, [])
 
   const signOut = useCallback(() => {
-    setSession(null)
     writeSession(null)
+    setSession(null)
   }, [])
+
+  useEffect(() => {
+    window.addEventListener(unauthorizedEvent, signOut)
+    return () => window.removeEventListener(unauthorizedEvent, signOut)
+  }, [signOut])
 
   const value = useMemo<AuthContextValue>(
     () => ({ user: session?.user ?? null, signIn, signOut }),

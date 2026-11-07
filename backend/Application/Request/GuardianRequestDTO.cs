@@ -7,20 +7,20 @@ namespace Application.Request
 {
     public class GuardianRequestDTO
     {
-        [Required(ErrorMessage = "Guardian name is required")]
-        [StringLength(100, MinimumLength = 2, ErrorMessage = "Guardian name must be between 2 and 100 characters")]
+        [Required(ErrorMessage = "Nome do responsável é obrigatório")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Nome do responsável deve ter entre 2 e 100 caracteres")]
         public string Name { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Guardian phone is required")]
+        [Required(ErrorMessage = "Telefone do responsável é obrigatório")]
         public string Phone { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Guardian email is required")]
-        [EmailAddress(ErrorMessage = "Invalid guardian email format")]
-        [StringLength(100, ErrorMessage = "Guardian email must be at most 100 characters")]
+        [Required(ErrorMessage = "E-mail do responsável é obrigatório")]
+        [EmailAddress(ErrorMessage = "E-mail do responsável em formato inválido")]
+        [StringLength(100, ErrorMessage = "E-mail do responsável deve ter no máximo 100 caracteres")]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Guardian CPF is required")]
-        [RegularExpression(@"^\d{11}$", ErrorMessage = "Guardian CPF must contain exactly 11 digits")]
+        [Required(ErrorMessage = "CPF do responsável é obrigatório")]
+        [RegularExpression(@"^\d{11}$", ErrorMessage = "CPF do responsável deve ter exatamente 11 dígitos")]
         public string Cpf { get; set; } = string.Empty;
     }
 }

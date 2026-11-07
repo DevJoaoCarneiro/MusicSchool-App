@@ -4,11 +4,11 @@ namespace Application.Request
 {
     public class ChangePasswordRequestDTO
     {
-        [Required(ErrorMessage = "Current password is required")]
+        [Required(ErrorMessage = "Senha atual é obrigatória")]
         public string CurrentPassword { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "New password is required")]
-        [MinLength(6, ErrorMessage = "New password must be at least 6 characters long")]
+        [Required(ErrorMessage = "Nova senha é obrigatória")]
+        [MinLength(6, ErrorMessage = "Nova senha deve ter pelo menos 6 caracteres")]
         public string NewPassword { get; set; } = string.Empty;
     }
 }

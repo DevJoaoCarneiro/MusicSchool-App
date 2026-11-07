@@ -26,14 +26,14 @@ namespace Application.Services
             {
                 if (userRequestDTO == null)
                 {
-                    return Result("Parameters is empty or null", ResponseStatus.InvalidArgument);
+                    return Result("Parâmetros não informados", ResponseStatus.InvalidArgument);
                 }
 
                 if (string.IsNullOrWhiteSpace(userRequestDTO.Name) ||
                     string.IsNullOrWhiteSpace(userRequestDTO.Email) ||
                     string.IsNullOrWhiteSpace(userRequestDTO.Password))
                 {
-                    return Result("Name, email and password are required", ResponseStatus.InvalidArgument);
+                    return Result("Nome, e-mail e senha são obrigatórios", ResponseStatus.InvalidArgument);
                 }
 
                 if (!Enum.TryParse<UserRole>(userRequestDTO.Role, ignoreCase: true, out var role) ||
@@ -41,7 +41,7 @@ namespace Application.Services
                     int.TryParse(userRequestDTO.Role, out _))
                 {
                     return Result(
-                        $"Invalid role. Allowed values: {string.Join(", ", Enum.GetNames<UserRole>())}",
+                        $"Perfil inválido. Valores permitidos: {string.Join(", ", Enum.GetNames<UserRole>())}",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -49,7 +49,7 @@ namespace Application.Services
 
                 if (await _userRepository.ExistsByEmailAsync(email))
                 {
-                    return Result("Email is already in use", ResponseStatus.Conflict);
+                    return Result("E-mail já está em uso", ResponseStatus.Conflict);
                 }
 
                 var passwordHash = _securityService.HashPassword(userRequestDTO.Password);
@@ -62,11 +62,11 @@ namespace Application.Services
 
                 await _userRepository.AddAsync(newUser);
 
-                return Result("User created successfully", ResponseStatus.Success, ToData(newUser));
+                return Result("Usuário criado com sucesso", ResponseStatus.Success, ToData(newUser));
             }
             catch (Exception)
             {
-                return Result("An unexpected error occurred while creating the user", ResponseStatus.Error);
+                return Result("Ocorreu um erro inesperado ao criar o usuário", ResponseStatus.Error);
             }
         }
 
@@ -87,7 +87,7 @@ namespace Application.Services
 
                 return new UserListResponseDTO
                 {
-                    Message = "Users retrieved successfully",
+                    Message = "Usuários listados com sucesso",
                     Status = ResponseStatus.Success,
                     Data = new UserListData
                     {
@@ -102,7 +102,7 @@ namespace Application.Services
             {
                 return new UserListResponseDTO
                 {
-                    Message = "An unexpected error occurred while retrieving users",
+                    Message = "Ocorreu um erro inesperado ao listar os usuários",
                     Status = ResponseStatus.Error
                 };
             }
@@ -113,26 +113,26 @@ namespace Application.Services
             ChangePasswordRequestDTO request)
         {
             if (userId == Guid.Empty)
-                return Result("Invalid user", ResponseStatus.Unauthorized);
+                return Result("Usuário inválido", ResponseStatus.Unauthorized);
 
             if (request == null ||
                 string.IsNullOrWhiteSpace(request.CurrentPassword) ||
                 string.IsNullOrWhiteSpace(request.NewPassword))
             {
-                return Result("Current and new passwords are required", ResponseStatus.InvalidArgument);
+                return Result("Senha atual e nova senha são obrigatórias", ResponseStatus.InvalidArgument);
             }
 
             if (request.NewPassword.Length < MinPasswordLength)
             {
                 return Result(
-                    $"New password must be at least {MinPasswordLength} characters long",
+                    $"Nova senha deve ter pelo menos {MinPasswordLength} caracteres",
                     ResponseStatus.InvalidArgument);
             }
 
             if (request.NewPassword == request.CurrentPassword)
             {
                 return Result(
-                    "New password must be different from the current password",
+                    "A nova senha deve ser diferente da atual",
                     ResponseStatus.InvalidArgument);
             }
 
@@ -141,20 +141,20 @@ namespace Application.Services
                 var user = await _userRepository.GetByIdAsync(userId);
 
                 if (user == null)
-                    return Result("User not found", ResponseStatus.NotFound);
+                    return Result("Usuário não encontrado", ResponseStatus.NotFound);
 
                 if (!_securityService.VerifyPassword(request.CurrentPassword, user.PasswordHash))
-                    return Result("Current password is incorrect", ResponseStatus.Unauthorized);
+                    return Result("Senha atual incorreta", ResponseStatus.Unauthorized);
 
                 user.ChangePassword(_securityService.HashPassword(request.NewPassword));
 
                 await _userRepository.UpdateAsync(user);
 
-                return Result("Password changed successfully", ResponseStatus.Success, ToData(user));
+                return Result("Senha alterada com sucesso", ResponseStatus.Success, ToData(user));
             }
             catch (Exception)
             {
-                return Result("An unexpected error occurred while changing the password", ResponseStatus.Error);
+                return Result("Ocorreu um erro inesperado ao alterar a senha", ResponseStatus.Error);
             }
         }
 

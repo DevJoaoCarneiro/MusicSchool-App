@@ -36,7 +36,7 @@ namespace Api.Controllers
         public async Task<IActionResult> GetById(string id)
         {
             if (!Guid.TryParse(id, out var instrumentId))
-                return InvalidId("instrument");
+                return InvalidId("instrumento");
 
             var response = await _services.GetByIdAsync(instrumentId);
             return FromStatus(response.Status, response);
@@ -49,7 +49,7 @@ namespace Api.Controllers
             [FromBody] InstrumentRequestDTO request)
         {
             if (!Guid.TryParse(id, out var instrumentId))
-                return InvalidId("instrument");
+                return InvalidId("instrumento");
 
             var response = await _services.UpdateAsync(instrumentId, request);
             return FromStatus(response.Status, response);
@@ -60,7 +60,7 @@ namespace Api.Controllers
         public async Task<IActionResult> Delete(string id)
         {
             if (!Guid.TryParse(id, out var instrumentId))
-                return InvalidId("instrument");
+                return InvalidId("instrumento");
 
             var response = await _services.DeleteAsync(instrumentId);
             return FromStatus(response.Status, response);

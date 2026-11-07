@@ -50,7 +50,7 @@ namespace Api.Controllers
             [FromBody] RegisterTuitionPaymentRequestDTO request)
         {
             if (!Guid.TryParse(id, out var tuitionId))
-                return InvalidId("tuition");
+                return InvalidId("mensalidade");
 
             var response = await _tuitionService.RegisterPaymentAsync(tuitionId, request);
             return FromStatus(response.Status, response);

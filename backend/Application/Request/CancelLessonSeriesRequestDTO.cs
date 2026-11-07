@@ -4,9 +4,9 @@ namespace Application.Request
 {
     public class CancelLessonSeriesRequestDTO
     {
-        [Required(ErrorMessage = "Cancellation reason is required")]
-        [MinLength(5, ErrorMessage = "Cancellation reason must have at least 5 characters")]
-        [MaxLength(500, ErrorMessage = "Cancellation reason cannot exceed 500 characters")]
+        [Required(ErrorMessage = "Motivo do cancelamento é obrigatório")]
+        [MinLength(5, ErrorMessage = "Motivo do cancelamento deve ter pelo menos 5 caracteres")]
+        [MaxLength(500, ErrorMessage = "Motivo do cancelamento deve ter no máximo 500 caracteres")]
         public string Reason { get; set; } = string.Empty;
     }
 }

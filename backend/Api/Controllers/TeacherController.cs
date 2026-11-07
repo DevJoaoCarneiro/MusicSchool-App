@@ -40,7 +40,7 @@ namespace Api.Controllers
         public async Task<IActionResult> GetTeacherById(string id)
         {
             if (!Guid.TryParse(id, out var teacherId))
-                return InvalidId("teacher");
+                return InvalidId("professor");
 
             var result = await _teacherService.GetTeacherById(teacherId);
             return FromStatus(result.Status, result);
@@ -53,7 +53,7 @@ namespace Api.Controllers
             [FromBody] TeacherRequestDTO teacherRequestDTO)
         {
             if (!Guid.TryParse(id, out var teacherId))
-                return InvalidId("teacher");
+                return InvalidId("professor");
 
             var result = await _teacherService.UpdateTeacher(teacherId, teacherRequestDTO);
             return FromStatus(result.Status, result);
@@ -64,7 +64,7 @@ namespace Api.Controllers
         public async Task<IActionResult> DeleteTeacher(string id)
         {
             if (!Guid.TryParse(id, out var teacherId))
-                return InvalidId("teacher");
+                return InvalidId("professor");
 
             var result = await _teacherService.DeleteTeacher(teacherId);
             return FromStatus(result.Status, result);

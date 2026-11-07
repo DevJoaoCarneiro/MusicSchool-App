@@ -1,12 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { Button, Card, FormStack, Input, PageHeader } from '@/components/ui'
-import { useAuth } from '@/hooks/useAuth'
 import { useToast } from '@/hooks/useToast'
 import { authService } from '@/services/authService'
 import styles from './ChangePasswordPage.module.css'
 
 export function ChangePasswordPage() {
-  const { user } = useAuth()
   const { showToast } = useToast()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -14,10 +12,8 @@ export function ChangePasswordPage() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (!user) return
-
     setSubmitting(true)
-    const response = await authService.changePassword(user.id, { currentPassword, newPassword })
+    const response = await authService.changePassword({ currentPassword, newPassword })
     setSubmitting(false)
 
     if (response.status !== 'Success') {

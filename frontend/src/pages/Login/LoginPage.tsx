@@ -74,11 +74,6 @@ export function LoginPage() {
           <Button type="submit" fullWidth loading={submitting}>
             Entrar
           </Button>
-
-          <div className={styles.demo}>
-            <strong>Contas de demonstração (senha 123456)</strong>
-            <span>admin@ · secretaria@ · professor@ · aluno@ — escola.com</span>
-          </div>
         </form>
       </section>
     </div>

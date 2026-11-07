@@ -28,7 +28,7 @@ namespace Infrastructure.Repositories
                 PostgresErrors.Has(ex, PostgresErrors.UniqueViolation))
             {
                 throw new ConcurrencyConflictException(
-                    "Student already has an active enrollment for this instrument",
+                    "Aluno já possui matrícula ativa neste instrumento",
                     ex);
             }
 

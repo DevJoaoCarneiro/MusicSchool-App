@@ -10,10 +10,14 @@ namespace Application.Services
     public class TeacherService : ITeacherServices
     {
         private readonly ITeacherRepository _teacherRepository;
+        private readonly IInstrumentRepository _instrumentRepository;
 
-        public TeacherService(ITeacherRepository teacherRepository)
+        public TeacherService(
+            ITeacherRepository teacherRepository,
+            IInstrumentRepository instrumentRepository)
         {
             _teacherRepository = teacherRepository;
+            _instrumentRepository = instrumentRepository;
         }
 
         public async Task<TeacherResponseDTO> CreateTeacher(
@@ -26,11 +30,18 @@ namespace Application.Services
                 if (validation != null)
                     return validation;
 
+                var specialtiesValidation = await ResolveSpecialtiesAsync(input);
+
+                if (specialtiesValidation.Error != null)
+                    return specialtiesValidation.Error;
+
+                input = specialtiesValidation.Input!;
+
                 if (await _teacherRepository.ExistsByEmailAsync(input.Email))
-                    return Result("Email is already in use", ResponseStatus.Conflict);
+                    return Result("E-mail já está em uso", ResponseStatus.Conflict);
 
                 if (await _teacherRepository.ExistsByCpfAsync(input.Cpf))
-                    return Result("CPF is already in use", ResponseStatus.Conflict);
+                    return Result("CPF já está em uso", ResponseStatus.Conflict);
 
                 var newTeacher = new Teacher(
                     input.Name,
@@ -42,14 +53,14 @@ namespace Application.Services
                 await _teacherRepository.AddAsync(newTeacher);
 
                 return Result(
-                    "Teacher created successfully",
+                    "Professor cadastrado com sucesso",
                     ResponseStatus.Success,
                     ToData(newTeacher));
             }
             catch (Exception)
             {
                 return Result(
-                    "An unexpected error occurred while creating the teacher",
+                    "Ocorreu um erro inesperado ao cadastrar o professor",
                     ResponseStatus.Error);
             }
         }
@@ -84,7 +95,7 @@ namespace Application.Services
 
                 return new TeacherListResponseDTO
                 {
-                    Message = "Teachers retrieved successfully",
+                    Message = "Professores listados com sucesso",
                     Status = ResponseStatus.Success,
                     Data = new TeacherListData
                     {
@@ -99,7 +110,7 @@ namespace Application.Services
             {
                 return new TeacherListResponseDTO
                 {
-                    Message = "An unexpected error occurred while retrieving teachers",
+                    Message = "Ocorreu um erro inesperado ao listar os professores",
                     Status = ResponseStatus.Error
                 };
             }
@@ -108,7 +119,7 @@ namespace Application.Services
         public async Task<TeacherResponseDTO> GetTeacherById(Guid id)
         {
             if (id == Guid.Empty)
-                return Result("Invalid teacher ID", ResponseStatus.InvalidArgument);
+                return Result("ID de professor inválido", ResponseStatus.InvalidArgument);
 
             try
             {
@@ -125,17 +136,17 @@ namespace Application.Services
                     });
 
                 if (teacher == null)
-                    return Result("Teacher not found", ResponseStatus.NotFound);
+                    return Result("Professor não encontrado", ResponseStatus.NotFound);
 
                 return Result(
-                    "Teacher found successfully",
+                    "Professor encontrado com sucesso",
                     ResponseStatus.Success,
                     teacher);
             }
             catch (Exception)
             {
                 return Result(
-                    "An unexpected error occurred while retrieving the teacher",
+                    "Ocorreu um erro inesperado ao buscar o professor",
                     ResponseStatus.Error);
             }
         }
@@ -145,7 +156,7 @@ namespace Application.Services
             TeacherRequestDTO teacherRequestDTO)
         {
             if (id == Guid.Empty)
-                return Result("Invalid teacher ID", ResponseStatus.InvalidArgument);
+                return Result("ID de professor inválido", ResponseStatus.InvalidArgument);
 
             try
             {
@@ -157,13 +168,20 @@ namespace Application.Services
                 var teacher = await _teacherRepository.GetByIdAsync(id);
 
                 if (teacher == null)
-                    return Result("Teacher not found", ResponseStatus.NotFound);
+                    return Result("Professor não encontrado", ResponseStatus.NotFound);
+
+                var specialtiesValidation = await ResolveSpecialtiesAsync(input);
+
+                if (specialtiesValidation.Error != null)
+                    return specialtiesValidation.Error;
+
+                input = specialtiesValidation.Input!;
 
                 if (await _teacherRepository.ExistsByEmailExceptIdAsync(input.Email, id))
-                    return Result("Email is already registered", ResponseStatus.Conflict);
+                    return Result("E-mail já está em uso", ResponseStatus.Conflict);
 
                 if (await _teacherRepository.ExistsByCpfExceptIdAsync(input.Cpf, id))
-                    return Result("CPF is already registered", ResponseStatus.Conflict);
+                    return Result("CPF já está em uso", ResponseStatus.Conflict);
 
                 teacher.Update(
                     input.Name,
@@ -175,14 +193,14 @@ namespace Application.Services
                 await _teacherRepository.UpdateAsync(teacher);
 
                 return Result(
-                    "Teacher updated successfully",
+                    "Professor atualizado com sucesso",
                     ResponseStatus.Success,
                     ToData(teacher));
             }
             catch (Exception)
             {
                 return Result(
-                    "An unexpected error occurred while updating the teacher",
+                    "Ocorreu um erro inesperado ao atualizar o professor",
                     ResponseStatus.Error);
             }
         }
@@ -190,37 +208,37 @@ namespace Application.Services
         public async Task<TeacherResponseDTO> DeleteTeacher(Guid id)
         {
             if (id == Guid.Empty)
-                return Result("Invalid teacher ID", ResponseStatus.InvalidArgument);
+                return Result("ID de professor inválido", ResponseStatus.InvalidArgument);
 
             try
             {
                 var teacher = await _teacherRepository.GetByIdAsync(id);
 
                 if (teacher == null)
-                    return Result("Teacher not found", ResponseStatus.NotFound);
+                    return Result("Professor não encontrado", ResponseStatus.NotFound);
 
                 if (await _teacherRepository.HasActiveLessonsAsync(id))
                 {
                     return Result(
-                        "Teacher has an active lesson linked",
+                        "O professor possui aulas agendadas",
                         ResponseStatus.Conflict);
                 }
 
                 if (await _teacherRepository.HasAnyLessonHistoryAsync(id))
                 {
                     return Result(
-                        "Teacher has lesson history and cannot be deleted",
+                        "O professor possui histórico de aulas e não pode ser excluído",
                         ResponseStatus.Conflict);
                 }
 
                 await _teacherRepository.DeleteAsync(teacher);
 
-                return Result("Teacher deleted successfully", ResponseStatus.Success);
+                return Result("Professor excluído com sucesso", ResponseStatus.Success);
             }
             catch (Exception)
             {
                 return Result(
-                    "An unexpected error occurred while deleting the teacher",
+                    "Ocorreu um erro inesperado ao excluir o professor",
                     ResponseStatus.Error);
             }
         }
@@ -232,6 +250,38 @@ namespace Application.Services
             string Cpf,
             List<string> Specialties);
 
+        private sealed record SpecialtiesResolution(
+            TeacherInput? Input,
+            TeacherResponseDTO? Error);
+
+        private async Task<SpecialtiesResolution> ResolveSpecialtiesAsync(TeacherInput input)
+        {
+            var instruments = await _instrumentRepository.GetAllAsync();
+
+            var byName = instruments
+                .GroupBy(instrument => instrument.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First().Name, StringComparer.OrdinalIgnoreCase);
+
+            var unknown = input.Specialties
+                .Where(specialty => !byName.ContainsKey(specialty))
+                .ToList();
+
+            if (unknown.Count > 0)
+            {
+                return new SpecialtiesResolution(
+                    null,
+                    Result(
+                        $"As especialidades devem ser instrumentos cadastrados: {string.Join(", ", unknown)}",
+                        ResponseStatus.InvalidArgument));
+            }
+
+            var canonical = input.Specialties
+                .Select(specialty => byName[specialty])
+                .ToList();
+
+            return new SpecialtiesResolution(input with { Specialties = canonical }, null);
+        }
+
         private static TeacherResponseDTO? Validate(
             TeacherRequestDTO? request,
             out TeacherInput input)
@@ -239,7 +289,7 @@ namespace Application.Services
             input = null!;
 
             if (request == null)
-                return Result("Request body is required", ResponseStatus.InvalidArgument);
+                return Result("Corpo da requisição é obrigatório", ResponseStatus.InvalidArgument);
 
             if (string.IsNullOrWhiteSpace(request.Name) ||
                 string.IsNullOrWhiteSpace(request.Email) ||
@@ -247,7 +297,7 @@ namespace Application.Services
                 string.IsNullOrWhiteSpace(request.Cpf))
             {
                 return Result(
-                    "Name, email, phone and CPF are required",
+                    "Nome, e-mail, telefone e CPF são obrigatórios",
                     ResponseStatus.InvalidArgument);
             }
 
@@ -258,12 +308,12 @@ namespace Application.Services
                 .ToList();
 
             if (specialties.Count == 0)
-                return Result("At least one specialty is required", ResponseStatus.InvalidArgument);
+                return Result("Informe ao menos uma especialidade", ResponseStatus.InvalidArgument);
 
             var cpf = CpfValidator.Normalize(request.Cpf);
 
             if (!CpfValidator.IsValid(cpf))
-                return Result("Invalid CPF", ResponseStatus.InvalidArgument);
+                return Result("CPF inválido", ResponseStatus.InvalidArgument);
 
             input = new TeacherInput(
                 request.Name.Trim(),

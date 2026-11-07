@@ -27,7 +27,7 @@ namespace Domain.Entities
         {
             if (string.IsNullOrWhiteSpace(passwordHash))
                 throw new ArgumentException(
-                    "Password hash is required",
+                    "Hash da senha é obrigatório",
                     nameof(passwordHash));
 
             PasswordHash = passwordHash;

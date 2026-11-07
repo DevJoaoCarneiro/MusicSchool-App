@@ -42,7 +42,7 @@ namespace Domain.Entities
 
             if (!TryParseReferenceMonth(referenceMonth, out var year, out var month))
                 throw new ArgumentException(
-                    "Reference month must be in the format yyyy-MM",
+                    "Mês de referência deve estar no formato yyyy-MM",
                     nameof(referenceMonth));
 
             Id = Guid.NewGuid();
@@ -64,16 +64,16 @@ namespace Domain.Entities
         {
             if (Status == TuitionStatus.Paid)
                 throw new InvalidOperationException(
-                    "Tuition is already paid");
+                    "Mensalidade já está paga");
 
             if (amount <= 0)
                 throw new ArgumentException(
-                    "Amount must be greater than zero",
+                    "Valor deve ser maior que zero",
                     nameof(amount));
 
             if (!Enum.IsDefined(method))
                 throw new ArgumentException(
-                    "Invalid payment method",
+                    "Forma de pagamento inválida",
                     nameof(method));
 
             Status = TuitionStatus.Paid;

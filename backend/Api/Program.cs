@@ -47,25 +47,7 @@ builder.Services
     .AddControllers()
     .ConfigureApiBehaviorOptions(options =>
     {
-        options.InvalidModelStateResponseFactory = context =>
-        {
-            var errors = context.ModelState
-                .Where(entry => entry.Value?.Errors.Count > 0)
-                .ToDictionary(
-                    entry => entry.Key,
-                    entry => entry.Value!.Errors
-                        .Select(error => string.IsNullOrWhiteSpace(error.ErrorMessage)
-                            ? "Invalid value"
-                            : error.ErrorMessage)
-                        .ToArray());
-
-            return new BadRequestObjectResult(new
-            {
-                Message = "Invalid request parameters",
-                Status = ResponseStatus.InvalidArgument,
-                Data = errors
-            });
-        };
+        options.InvalidModelStateResponseFactory = ValidationResponseFactory.Create;
     });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -111,7 +93,7 @@ builder.Services.AddRateLimiter(options =>
     {
         await context.HttpContext.Response.WriteAsJsonAsync(new
         {
-            Message = "Too many login attempts. Please try again later.",
+            Message = "Muitas tentativas de login. Tente novamente mais tarde.",
             Status = "too_many_requests",
             Data = (object?)null
         }, cancellationToken);
@@ -227,7 +209,7 @@ app.UseExceptionHandler(errorApp =>
         context.Response.StatusCode = StatusCodes.Status500InternalServerError;
         await context.Response.WriteAsJsonAsync(new
         {
-            Message = "An unexpected error occurred",
+            Message = "Ocorreu um erro inesperado",
             Status = ResponseStatus.Error,
             Data = (object?)null
         });

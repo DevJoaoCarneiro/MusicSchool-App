@@ -4,29 +4,29 @@ namespace Application.Request
 {
     public class TeacherRequestDTO
     {
-        [Required(ErrorMessage = "Name is required")]
+        [Required(ErrorMessage = "Nome é obrigatório")]
         [StringLength(100, MinimumLength = 2,
-            ErrorMessage = "Name must be between 2 and 100 characters")]
+            ErrorMessage = "Nome deve ter entre 2 e 100 caracteres")]
         public string Name { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Invalid email format")]
+        [Required(ErrorMessage = "E-mail é obrigatório")]
+        [EmailAddress(ErrorMessage = "E-mail em formato inválido")]
         [StringLength(100,
-            ErrorMessage = "Email must be at most 100 characters")]
+            ErrorMessage = "E-mail deve ter no máximo 100 caracteres")]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Phone is required")]
+        [Required(ErrorMessage = "Telefone é obrigatório")]
         [StringLength(20, MinimumLength = 10,
-            ErrorMessage = "Phone must be between 10 and 20 characters")]
+            ErrorMessage = "Telefone deve ter entre 10 e 20 caracteres")]
         public string Phone { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "CPF is required")]
+        [Required(ErrorMessage = "CPF é obrigatório")]
         [StringLength(14, MinimumLength = 11,
-            ErrorMessage = "CPF must contain 11 digits, with optional punctuation")]
+            ErrorMessage = "CPF deve ter 11 dígitos, com ou sem pontuação")]
         public string Cpf { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Specialties are required")]
-        [MinLength(1, ErrorMessage = "At least one specialty is required")]
+        [Required(ErrorMessage = "Especialidades são obrigatórias")]
+        [MinLength(1, ErrorMessage = "Informe ao menos uma especialidade")]
         public List<string> Specialties { get; set; } = new();
     }
 }

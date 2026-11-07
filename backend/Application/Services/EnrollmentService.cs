@@ -38,7 +38,7 @@ namespace Application.Services
                 if (request == null)
                 {
                     return Error(
-                        "Request body is required",
+                        "Corpo da requisição é obrigatório",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -47,21 +47,21 @@ namespace Application.Services
                     request.StartDate == null)
                 {
                     return Error(
-                        "StudentId, InstrumentId and StartDate are required",
+                        "Aluno, instrumento e data de início são obrigatórios",
                         ResponseStatus.InvalidArgument);
                 }
 
                 if (request.MonthlyFee <= 0)
                 {
                     return Error(
-                        "Monthly fee must be greater than zero",
+                        "Mensalidade deve ser maior que zero",
                         ResponseStatus.InvalidArgument);
                 }
 
                 if (request.DueDay < 1 || request.DueDay > 28)
                 {
                     return Error(
-                        "Due day must be between 1 and 28",
+                        "Dia de vencimento deve estar entre 1 e 28",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -70,7 +70,7 @@ namespace Application.Services
 
                 if (student == null)
                 {
-                    return Error("Student not found", ResponseStatus.NotFound);
+                    return Error("Aluno não encontrado", ResponseStatus.NotFound);
                 }
 
                 var instrument = await _instrumentRepository
@@ -78,7 +78,7 @@ namespace Application.Services
 
                 if (instrument == null)
                 {
-                    return Error("Instrument not found", ResponseStatus.NotFound);
+                    return Error("Instrumento não encontrado", ResponseStatus.NotFound);
                 }
 
                 var alreadyEnrolled = await _enrollmentRepository
@@ -89,7 +89,7 @@ namespace Application.Services
                 if (alreadyEnrolled)
                 {
                     return Error(
-                        "Student already has an active enrollment for this instrument",
+                        "Aluno já possui matrícula ativa neste instrumento",
                         ResponseStatus.Conflict);
                 }
 
@@ -104,7 +104,7 @@ namespace Application.Services
 
                 return new EnrollmentResponseDTO
                 {
-                    Message = "Enrollment created successfully",
+                    Message = "Matrícula criada com sucesso",
                     Status = ResponseStatus.Success,
                     Data = ToData(enrollment, student, instrument)
                 };
@@ -112,13 +112,13 @@ namespace Application.Services
             catch (ConcurrencyConflictException)
             {
                 return Error(
-                    "Student already has an active enrollment for this instrument",
+                    "Aluno já possui matrícula ativa neste instrumento",
                     ResponseStatus.Conflict);
             }
             catch (Exception)
             {
                 return Error(
-                    "An unexpected error occurred while creating the enrollment",
+                    "Ocorreu um erro inesperado ao criar a matrícula",
                     ResponseStatus.Error);
             }
         }
@@ -132,28 +132,28 @@ namespace Application.Services
                 if (id == Guid.Empty)
                 {
                     return CloseError(
-                        "Invalid enrollment ID",
+                        "ID de matrícula inválido",
                         ResponseStatus.InvalidArgument);
                 }
 
                 if (request == null)
                 {
                     return CloseError(
-                        "Request body is required",
+                        "Corpo da requisição é obrigatório",
                         ResponseStatus.InvalidArgument);
                 }
 
                 if (request.EndDate == null)
                 {
                     return CloseError(
-                        "End date is required",
+                        "Data de término é obrigatória",
                         ResponseStatus.InvalidArgument);
                 }
 
                 if (string.IsNullOrWhiteSpace(request.Reason))
                 {
                     return CloseError(
-                        "Reason is required",
+                        "Motivo é obrigatório",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -162,7 +162,7 @@ namespace Application.Services
                 if (reason.Length > Enrollment.MaxCloseReasonLength)
                 {
                     return CloseError(
-                        $"Reason cannot exceed {Enrollment.MaxCloseReasonLength} characters",
+                        $"Motivo deve ter no máximo {Enrollment.MaxCloseReasonLength} caracteres",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -170,13 +170,13 @@ namespace Application.Services
 
                 if (enrollment == null)
                 {
-                    return CloseError("Enrollment not found", ResponseStatus.NotFound);
+                    return CloseError("Matrícula não encontrada", ResponseStatus.NotFound);
                 }
 
                 if (enrollment.Status == EnrollmentStatus.Closed)
                 {
                     return CloseError(
-                        "Enrollment is already closed",
+                        "Matrícula já está encerrada",
                         ResponseStatus.Conflict);
                 }
 
@@ -186,7 +186,7 @@ namespace Application.Services
                 if (endDate.Date < enrollment.StartDate.Date)
                 {
                     return CloseError(
-                        "End date cannot be before the enrollment start date",
+                        "Data de término não pode ser anterior ao início da matrícula",
                         ResponseStatus.InvalidArgument);
                 }
 
@@ -201,7 +201,7 @@ namespace Application.Services
                         blockingFrom))
                 {
                     return CloseError(
-                        "Enrollment has scheduled lessons after the end date",
+                        "A matrícula possui aulas agendadas após a data de término",
                         ResponseStatus.Conflict);
                 }
 
@@ -211,7 +211,7 @@ namespace Application.Services
 
                 return new CloseEnrollmentResponseDTO
                 {
-                    Message = "Enrollment closed successfully",
+                    Message = "Matrícula encerrada com sucesso",
                     Status = ResponseStatus.Success,
                     Data = new CloseEnrollmentData
                     {
@@ -224,7 +224,7 @@ namespace Application.Services
             catch (Exception)
             {
                 return CloseError(
-                    "An unexpected error occurred while closing the enrollment",
+                    "Ocorreu um erro inesperado ao encerrar a matrícula",
                     ResponseStatus.Error);
             }
         }
@@ -234,14 +234,14 @@ namespace Application.Services
             string? teacherEmail)
         {
             if (id == Guid.Empty)
-                return Error("Invalid enrollment ID", ResponseStatus.InvalidArgument);
+                return Error("ID de matrícula inválido", ResponseStatus.InvalidArgument);
 
             try
             {
                 var enrollment = await _enrollmentRepository.GetByIdAsync(id);
 
                 if (enrollment == null)
-                    return Error("Enrollment not found", ResponseStatus.NotFound);
+                    return Error("Matrícula não encontrada", ResponseStatus.NotFound);
 
                 if (teacherEmail != null)
                 {
@@ -250,13 +250,13 @@ namespace Application.Services
                     if (teacher == null ||
                         !await _enrollmentRepository.HasLessonWithTeacherAsync(id, teacher.Id))
                     {
-                        return Error("Enrollment not found", ResponseStatus.NotFound);
+                        return Error("Matrícula não encontrada", ResponseStatus.NotFound);
                     }
                 }
 
                 return new EnrollmentResponseDTO
                 {
-                    Message = "Enrollment retrieved successfully",
+                    Message = "Matrícula encontrada com sucesso",
                     Status = ResponseStatus.Success,
                     Data = ToData(enrollment, enrollment.Student, enrollment.Instrument)
                 };
@@ -264,7 +264,7 @@ namespace Application.Services
             catch (Exception)
             {
                 return Error(
-                    "An unexpected error occurred while retrieving the enrollment",
+                    "Ocorreu um erro inesperado ao buscar a matrícula",
                     ResponseStatus.Error);
             }
         }
@@ -299,7 +299,7 @@ namespace Application.Services
                 else
                 {
                     return ListError(
-                        "Status must be Active or Closed",
+                        "Status deve ser Active ou Closed",
                         ResponseStatus.InvalidArgument);
                 }
             }
@@ -328,7 +328,7 @@ namespace Application.Services
 
                 return new EnrollmentListResponseDTO
                 {
-                    Message = "Enrollments retrieved successfully",
+                    Message = "Matrículas listadas com sucesso",
                     Status = ResponseStatus.Success,
                     Data = new EnrollmentListData
                     {
@@ -350,7 +350,7 @@ namespace Application.Services
             catch (Exception)
             {
                 return ListError(
-                    "An unexpected error occurred while retrieving enrollments",
+                    "Ocorreu um erro inesperado ao listar as matrículas",
                     ResponseStatus.Error);
             }
         }
@@ -379,7 +379,7 @@ namespace Application.Services
 
         private static EnrollmentListResponseDTO EmptyList(int page, int pageSize) => new()
         {
-            Message = "Enrollments retrieved successfully",
+            Message = "Matrículas listadas com sucesso",
             Status = ResponseStatus.Success,
             Data = new EnrollmentListData
             {

@@ -30,7 +30,7 @@ namespace Application.Services
                 {
                     return new AuthResponseDTO
                     {
-                        Message = "Parameters is empty or null",
+                        Message = "Parâmetros não informados",
 
                         Status = ResponseStatus.InvalidArgument,
 
@@ -43,7 +43,7 @@ namespace Application.Services
                 {
                     return new AuthResponseDTO
                     {
-                        Message = "Email and password are required",
+                        Message = "E-mail e senha são obrigatórios",
 
                         Status = ResponseStatus.InvalidArgument,
 
@@ -57,7 +57,7 @@ namespace Application.Services
                 {
                     return new AuthResponseDTO
                     {
-                        Message = "Invalid credentials",
+                        Message = "E-mail ou senha inválidos",
                         Status = ResponseStatus.Unauthorized,
                         Data = null
                     };
@@ -69,7 +69,7 @@ namespace Application.Services
                 {
                     return new AuthResponseDTO
                     {
-                        Message = "Invalid credentials",
+                        Message = "E-mail ou senha inválidos",
                         Status = ResponseStatus.Unauthorized,
                         Data = null
                     };
@@ -79,7 +79,7 @@ namespace Application.Services
 
                 return new AuthResponseDTO
                 {
-                    Message = "Login successful",
+                    Message = "Login realizado com sucesso",
                     Status = ResponseStatus.Success,
                     Data = new AuthData
                     {
@@ -99,7 +99,7 @@ namespace Application.Services
             {
                 return new AuthResponseDTO
                 {
-                    Message = "An unexpected error occurred",
+                    Message = "Ocorreu um erro inesperado",
 
                     Status = ResponseStatus.Error,
 

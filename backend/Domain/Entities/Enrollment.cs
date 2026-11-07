@@ -54,21 +54,21 @@ namespace Domain.Entities
         {
             if (Status == EnrollmentStatus.Closed)
                 throw new InvalidOperationException(
-                    "Enrollment is already closed");
+                    "Matrícula já está encerrada");
 
             if (string.IsNullOrWhiteSpace(reason))
                 throw new ArgumentException(
-                    "Reason is required",
+                    "Motivo é obrigatório",
                     nameof(reason));
 
             if (reason.Trim().Length > MaxCloseReasonLength)
                 throw new ArgumentException(
-                    $"Reason cannot exceed {MaxCloseReasonLength} characters",
+                    $"Motivo deve ter no máximo {MaxCloseReasonLength} caracteres",
                     nameof(reason));
 
             if (endDate.Date < StartDate.Date)
                 throw new ArgumentException(
-                    "End date cannot be before start date",
+                    "Data de término não pode ser anterior à data de início",
                     nameof(endDate));
 
             Status = EnrollmentStatus.Closed;
