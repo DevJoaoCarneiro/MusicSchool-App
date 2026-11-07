@@ -22,7 +22,7 @@ namespace Api.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Secretary")]
         public async Task<IActionResult> CreateEnrollment(
             [FromBody] EnrollmentRequestDTO request)
         {
@@ -40,7 +40,7 @@ namespace Api.Controllers
         }
 
         [HttpPatch("{id}/close")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Secretary")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
