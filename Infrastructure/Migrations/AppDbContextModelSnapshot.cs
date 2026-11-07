@@ -376,6 +376,8 @@ namespace Infrastructure.Migrations
                     b.HasIndex("EnrollmentId", "ReferenceMonth")
                         .IsUnique();
 
+                    b.HasIndex("Status", "ReferenceMonth");
+
                     b.ToTable("Tuitions", (string)null);
                 });
 

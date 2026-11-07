@@ -57,6 +57,12 @@ namespace Infrastructure.Persistence
                 .IsUnique();
 
             builder.HasIndex(t => t.ReferenceMonth);
+
+            builder.HasIndex(t => new
+            {
+                t.Status,
+                t.ReferenceMonth
+            });
         }
     }
 }
