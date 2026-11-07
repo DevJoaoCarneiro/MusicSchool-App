@@ -7,7 +7,22 @@ implementar novas features seguindo o mesmo padrão.
 
 ---
 
-## 📁 Estrutura do Projeto (DDD + SOLID)
+## 📁 Estrutura do Projeto
+
+```bash
+├── backend                # API .NET (DDD)
+│   ├── Api
+│   ├── Application
+│   ├── Domain
+│   ├── Infrastructure
+│   ├── Tests
+│   ├── docs / scripts     # teste de carga (k6)
+│   └── MusicSchoolApp.slnx
+│
+└── frontend               # React + TypeScript (Vite)
+```
+
+### Backend
 
 ```bash
 ├── Api
@@ -38,11 +53,11 @@ implementar novas features seguindo o mesmo padrão.
 
 Cada seta de dependência aponta para dentro (`Api → Application → Domain`, `Infrastructure → Domain`), com o `Domain` sem
 depender de nenhuma outra camada — a base do DDD. As implementações concretas (`Infrastructure`) são plugadas via injeção
-de dependência em `Api/Program.cs`, seguindo o princípio de inversão de dependência (o "D" do SOLID).
+de dependência em `backend/Api/Program.cs`, seguindo o princípio de inversão de dependência (o "D" do SOLID).
 
 ## 🧩 Endpoint de usuário
 
-`UserController` (`Api/Controllers/UserController.cs`) implementa `POST /api/users` e serve como referência de como uma
+`UserController` (`backend/Api/Controllers/UserController.cs`) implementa `POST /api/users` e serve como referência de como uma
 feature nova deve atravessar as camadas: DTO de entrada → `IUserServices` (Application) → entidade `User` (Domain) →
 `IUserRepository` (Domain) → `UserRepository` (Infrastructure, via EF Core). Use-o como modelo ao adicionar novos recursos.
 
@@ -68,6 +83,7 @@ O projeto contém testes unitários cobrindo:
 - Serviços da **camada Application**
 
 ```bash
+cd backend
 dotnet test
 ```
 
@@ -80,14 +96,14 @@ Para configurar sua string de conexão local, escolha uma das opções:
 
 **Opção 1 — .NET User Secrets (recomendado):**
 ```bash
-cd Api
+cd backend/Api
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=MusicSchoolDb;Username=postgres;Password=SUA_SENHA"
 ```
 
 **Opção 2 — `appsettings.Development.json` (ignorado pelo git):**
 ```bash
-cp Api/appsettings.Development.json.example Api/appsettings.Development.json
-# depois edite Api/appsettings.Development.json com sua senha real
+cp backend/Api/appsettings.Development.json.example backend/Api/appsettings.Development.json
+# depois edite backend/Api/appsettings.Development.json com sua senha real
 ```
 
 ```bash
@@ -103,5 +119,16 @@ cp Api/appsettings.Development.json.example Api/appsettings.Development.json
 
 Depois, aplique as migrations:
 ```bash
+cd backend
 dotnet ef database update --project Infrastructure --startup-project Api
+```
+
+## 🎨 Frontend
+
+React 19 + TypeScript com Vite, organizado em componentes. Detalhes em [`frontend/README.md`](frontend/README.md).
+
+```bash
+cd frontend
+npm install
+npm run dev
 ```
