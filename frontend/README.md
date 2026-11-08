@@ -67,6 +67,7 @@ E2E_ADMIN_EMAIL=admin@exemplo.com E2E_ADMIN_PASSWORD=senha npm run test:e2e:vide
 | `agenda.spec.ts` | aula avulsa, semana/mês, períodos, filtros, recorrência com conflito, concluir, reagendar, cancelar, cancelar série |
 | `tuitions.spec.ts` | gerar, não duplicar, mês inválido, filtros, registrar pagamento |
 | `change-password.spec.ts` | senha atual errada sem deslogar, senha igual, troca com sucesso |
+| `responsive.spec.ts` | nenhuma tela (nem a agenda no mês, nem o login) transborda na horizontal em 360, 768 e 1024px |
 
 ## Estrutura
 
