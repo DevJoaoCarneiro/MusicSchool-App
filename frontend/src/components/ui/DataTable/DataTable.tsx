@@ -63,7 +63,12 @@ export function DataTable<T>({
                   {columns.map((column) => (
                     <td
                       key={column.key}
-                      className={cn(column.muted && styles.muted, column.align === 'right' && styles.right)}
+                      data-label={column.header || undefined}
+                      className={cn(
+                        column.muted && styles.muted,
+                        column.align === 'right' && styles.right,
+                        !column.header && styles.actions,
+                      )}
                     >
                       {column.render(row)}
                     </td>

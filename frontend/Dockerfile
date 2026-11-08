@@ -17,7 +17,8 @@ RUN npm run build
 # ---------- runtime ----------
 FROM nginxinc/nginx-unprivileged:1.28-alpine AS runtime
 
-ENV PORT=8080
+ENV PORT=8080 \
+    NGINX_ENTRYPOINT_WORKER_PROCESSES_AUTOTUNE=1
 
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html

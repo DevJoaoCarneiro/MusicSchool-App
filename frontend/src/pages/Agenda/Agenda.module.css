@@ -123,6 +123,8 @@
   flex-direction: column;
   gap: 2px;
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
   padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
   border: 1px solid var(--color-border);
   border-left: 3px solid var(--tone);
@@ -166,12 +168,21 @@
 
 .cardFooter {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-1);
+  min-width: 0;
   margin-top: var(--space-1);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
+}
+
+.cardFooter > span {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .cardStatus {
@@ -326,11 +337,26 @@
 
 @media (max-width: 700px) {
   .monthCell {
+    min-width: 0;
     min-height: 64px;
+    padding: 2px 2px var(--space-1);
+  }
+
+  .chip {
+    justify-content: center;
+    padding: 1px 0;
+    font-size: 10px;
   }
 
   .chipText {
     display: none;
+  }
+
+  .more {
+    padding: 0;
+    font-size: 10px;
+    text-align: center;
+    white-space: nowrap;
   }
 
   .rangeLabel {
