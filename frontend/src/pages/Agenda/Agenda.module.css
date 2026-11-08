@@ -1,0 +1,344 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.navigation {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.rangeLabel {
+  margin-left: var(--space-2);
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.status {
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.error {
+  color: var(--color-danger);
+}
+
+.tone-info {
+  --tone: var(--color-info);
+  --tone-soft: var(--color-info-soft);
+}
+
+.tone-success {
+  --tone: var(--color-success);
+  --tone-soft: var(--color-success-soft);
+}
+
+.tone-danger {
+  --tone: var(--color-danger);
+  --tone-soft: var(--color-danger-soft);
+}
+
+.week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.weekDay {
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+  border-left: 1px solid var(--color-border);
+}
+
+.weekDay:first-child {
+  border-left: 0;
+}
+
+.weekDayHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.weekdayName {
+  font-size: var(--font-size-sm);
+  text-transform: capitalize;
+}
+
+.weekdayNumber {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.today {
+  background: var(--color-surface-muted);
+}
+
+.today .weekdayNumber {
+  color: var(--color-primary);
+}
+
+.weekDayBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+
+.noLessons {
+  padding: var(--space-4) 0;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--tone);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.card:focus-visible,
+.chip:focus-visible,
+.monthDay:focus-visible,
+.more:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.cardTime {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--tone);
+}
+
+.cardStudent {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.cardMeta {
+  overflow: hidden;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.cardStatus {
+  padding: 1px var(--space-2);
+  border-radius: 4px;
+  background: var(--tone-soft);
+  color: var(--tone);
+  font-weight: 600;
+}
+
+.tone-danger.card .cardTime,
+.tone-danger.card .cardStudent {
+  text-decoration: line-through;
+}
+
+.month {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.monthHeader {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-transform: capitalize;
+}
+
+.monthCell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 112px;
+  padding: var(--space-1) var(--space-1) var(--space-2);
+  border-top: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-border);
+}
+
+.monthCell:nth-child(7n + 1) {
+  border-left: 0;
+}
+
+.monthHeader + .monthCell,
+.monthCell:nth-child(-n + 14) {
+  border-top: 0;
+}
+
+.outside {
+  background: var(--color-bg);
+}
+
+.outside .monthDay {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.monthDay {
+  align-self: flex-end;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.monthDay:hover {
+  background: var(--color-surface-muted);
+}
+
+.todayBadge,
+.todayBadge:hover {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.chip {
+  display: flex;
+  gap: var(--space-1);
+  width: 100%;
+  padding: 2px var(--space-2);
+  border: 0;
+  border-radius: 4px;
+  background: var(--tone-soft);
+  color: var(--tone);
+  font-size: var(--font-size-xs);
+  text-align: left;
+  cursor: pointer;
+}
+
+.chipTime {
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.chipText {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tone-danger.chip .chipText {
+  text-decoration: line-through;
+}
+
+.more {
+  padding: 0 var(--space-2);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  text-align: left;
+  cursor: pointer;
+}
+
+.more:hover {
+  color: var(--color-text);
+}
+
+@media (max-width: 1100px) {
+  .week {
+    grid-template-columns: 1fr;
+  }
+
+  .weekDay {
+    min-height: auto;
+    border-top: 1px solid var(--color-border);
+    border-left: 0;
+  }
+
+  .weekDay:first-child {
+    border-top: 0;
+  }
+
+  .weekDayHeader {
+    justify-content: flex-start;
+    padding-left: var(--space-4);
+  }
+
+  .noLessons {
+    padding: var(--space-2) var(--space-2);
+    text-align: left;
+  }
+}
+
+@media (max-width: 700px) {
+  .monthCell {
+    min-height: 64px;
+  }
+
+  .chipText {
+    display: none;
+  }
+
+  .rangeLabel {
+    flex-basis: 100%;
+    margin: var(--space-2) 0 0;
+  }
+
+  .navigation {
+    flex-wrap: wrap;
+  }
+}

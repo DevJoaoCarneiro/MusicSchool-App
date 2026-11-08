@@ -1,0 +1,29 @@
+.page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-4);
+}
+
+.box,
+.inline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  max-width: 440px;
+}
+
+.inline {
+  padding-top: var(--space-8);
+}
+
+.title {
+  font-size: var(--font-size-xl);
+}
+
+.text {
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
