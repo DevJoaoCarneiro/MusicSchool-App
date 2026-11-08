@@ -136,3 +136,46 @@ npm run dev
 ```
 
 O front abre em `http://localhost:5173` e encaminha `/api` para o backend. Na primeira subida com banco vazio, a API exige `ADMIN_INITIAL_PASSWORD` para criar o administrador inicial (e aceita `ADMIN_INITIAL_EMAIL` e `ADMIN_INITIAL_NAME`).
+
+## 🚀 Deploy no Railway (Docker)
+
+Backend e frontend têm cada um seu `Dockerfile` e seu `railway.json` (build por Dockerfile, healthcheck em `/health` e restart automático). Nenhuma configuração ou segredo vai dentro das imagens: tudo vem de variáveis de ambiente.
+
+| Serviço | Root Directory | Imagem |
+|---|---|---|
+| `backend` | `/backend` | build com o SDK do .NET 10, roda no runtime `aspnet` com usuário sem privilégios, na porta da variável `PORT` |
+| `frontend` | `/frontend` | build com Node 22, servido pelo nginx sem privilégios, com fallback de rotas para o React |
+
+1. No projeto do Railway, adicione um banco **PostgreSQL** (serviço chamado `Postgres`).
+2. Crie dois serviços apontando para este repositório, chamados `backend` e `frontend`, e em **Settings → Source → Root Directory** informe `/backend` e `/frontend`. Os nomes importam: as variáveis usam `${{backend.RAILWAY_PUBLIC_DOMAIN}}` e `${{frontend.RAILWAY_PUBLIC_DOMAIN}}` para um serviço achar o outro.
+3. Em cada serviço: **Settings → Networking → Generate Domain**.
+4. Em **Variables → Raw Editor** de cada serviço, cadastre as variáveis da tabela abaixo. Para gerar a chave do JWT:
+
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
+   ```
+
+5. Faça o deploy. As migrations rodam na inicialização (`Database__MigrateOnStartup`) e o primeiro Admin é criado com `ADMIN_INITIAL_*`. Depois do primeiro login, remova `ADMIN_INITIAL_PASSWORD`.
+
+A cada push na branch configurada, o Railway refaz o deploy do serviço que teve arquivos alterados (`watchPatterns`).
+
+| Variável | Serviço | Para que serve |
+|---|---|---|
+| `PORT` | ambos | Porta em que o container escuta |
+| `ASPNETCORE_FORWARDEDHEADERS_ENABLED` | backend | Respeita `X-Forwarded-For/Proto` do proxy do Railway: HTTPS correto e rate limit por IP real |
+| `AllowedHosts` | backend | Hosts aceitos: o domínio público e o host do healthcheck do Railway |
+| `ConnectionStrings__DefaultConnection` | backend | Montada com as variáveis do serviço `Postgres` |
+| `Jwt__SecretKey` / `Jwt__Issuer` / `Jwt__Audience` | backend | Assinatura e validação dos tokens (chave com 32+ bytes, aleatória) |
+| `Cors__AllowedOrigins__0` | backend | URL do frontend, a única origem aceita pelo navegador |
+| `ADMIN_INITIAL_*` | backend | Criação do primeiro Admin quando o banco está vazio |
+| `VITE_API_URL` | frontend | URL pública da API, embutida no build do React |
+
+Para testar as imagens localmente:
+
+```bash
+docker build -t musicschool-api backend
+docker run --rm -p 8080:8080 -e ConnectionStrings__DefaultConnection="..." -e Jwt__SecretKey="..." -e Jwt__Issuer="MusicSchool.Api" -e ADMIN_INITIAL_PASSWORD="..." -e Cors__AllowedOrigins__0="http://localhost:3000" musicschool-api
+
+docker build -t musicschool-web --build-arg VITE_API_URL=http://localhost:8080 frontend
+docker run --rm -p 3000:8080 musicschool-web
+```
