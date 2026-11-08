@@ -1,0 +1,80 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Domain.Entities
+{
+    public class Enrollment
+    {
+        public Guid Id { get; private set; }
+
+        public Guid StudentId { get; private set; }
+        public Student Student { get; private set; } = null!;
+
+        public Guid InstrumentId { get; private set; }
+        public Instrument Instrument { get; private set; } = null!;
+
+        public DateTime StartDate { get; private set; }
+
+        public decimal MonthlyFee { get; private set; }
+
+        public int DueDay { get; private set; }
+
+        public EnrollmentStatus Status { get; private set; }
+
+        public const int MaxCloseReasonLength = 500;
+
+        public DateTime? EndDate { get; private set; }
+
+        public string? CloseReason { get; private set; }
+
+        // Constructor para Entity Framework Core
+        public Enrollment()
+        {
+        }
+
+        // Constructor para crear una matrícula
+        public Enrollment(
+            Guid studentId,
+            Guid instrumentId,
+            DateTime startDate,
+            decimal monthlyFee,
+            int dueDay)
+        {
+            Id = Guid.NewGuid();
+            StudentId = studentId;
+            InstrumentId = instrumentId;
+            StartDate = startDate;
+            MonthlyFee = monthlyFee;
+            DueDay = dueDay;
+            Status = EnrollmentStatus.Active;
+        }
+
+        public void Close(DateTime endDate, string reason)
+        {
+            if (Status == EnrollmentStatus.Closed)
+                throw new InvalidOperationException(
+                    "Matrícula já está encerrada");
+
+            if (string.IsNullOrWhiteSpace(reason))
+                throw new ArgumentException(
+                    "Motivo é obrigatório",
+                    nameof(reason));
+
+            if (reason.Trim().Length > MaxCloseReasonLength)
+                throw new ArgumentException(
+                    $"Motivo deve ter no máximo {MaxCloseReasonLength} caracteres",
+                    nameof(reason));
+
+            if (endDate.Date < StartDate.Date)
+                throw new ArgumentException(
+                    "Data de término não pode ser anterior à data de início",
+                    nameof(endDate));
+
+            Status = EnrollmentStatus.Closed;
+            EndDate = endDate.Date;
+            CloseReason = reason.Trim();
+        }
+    }
+
+}

@@ -1,0 +1,64 @@
+.card {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-md);
+}
+
+.table th {
+  padding: var(--space-3) var(--space-2);
+  font-weight: 500;
+  text-align: left;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: var(--space-2);
+  height: 42px;
+  border-top: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.table th:first-child,
+.table td:first-child {
+  padding-left: var(--space-2);
+}
+
+.table tbody tr:hover td {
+  background: var(--color-bg);
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.right {
+  text-align: right !important;
+}
+
+.status {
+  padding: var(--space-8) var(--space-4) !important;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.error {
+  color: var(--color-danger);
+}
+
+.footer {
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}

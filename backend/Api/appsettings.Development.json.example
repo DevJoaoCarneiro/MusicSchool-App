@@ -1,0 +1,29 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=MusicSchoolDb;Username=postgres;Password=postgres"
+  },
+  "Jwt": {
+    "SecretKey": "123456789012345678901234567890123",
+    "Issuer": "test",
+    "Audience": "musicschool-app"
+  },
+  "Cors": {
+    "AllowedOrigins": [ "http://localhost:5173" ]
+  },
+  "RateLimiting": {
+    "Login": {
+      "PermitLimit": 10,
+      "WindowSeconds": 60
+    }
+  },
+  "Database": {
+    "MigrateOnStartup": true
+  }
+}
